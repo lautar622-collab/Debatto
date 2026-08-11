@@ -16,10 +16,10 @@
         </p>
         <p class="response-content">{{ post.content }}</p>
          <form action="{{ url_for('post', post_id=post.id) }}" class="reply" method="post">
-            <input type="text" name="rcontent" placeholder="Write a response..." style="background-color: rgb(46, 45, 45); color: white;">
+            <input type="text" name="rcontent" placeholder="Write a response..."">
             <input type="hidden" name="post_id" value="{{ post.id }}"> 
             <br>
-            <select name="rtype" style="background-color: rgb(46, 45, 45); color: white;">
+            <select name="rtype"">
                 <option value="" disabled selected>Marks</option>
                 <option value="agreed !">Agreed (!)</option>
                 <option value="disagreed !">Disgreed (!)</option>
@@ -29,22 +29,22 @@
                 <option value="suggestion !?">Suggestion (!?)</option>
                 <option value="countershift !!">Countershift (!!)</option>
             </select>
-            <button type="submit" style="background-color: rgb(46, 45, 45); color: white;">Post Response</button>
+            <button type="submit"">Post Response</button>
         </form>
     </div>
     <hr>
     <h2>Debate</h2>
     {% macro show_responses(responses, depth = 1) %}
         {% for response in responses %}
-            <div class="response" style="margin-left: {{ depth * 30 }}px;">
+            <div class="response" style="margin-left: {{ depth * 30 }}px">
         <p class="response-data">
     ID: {{ response.id }}
     -<i> <a href="{{ url_for('profile', username=response.username) }}">{{ response.username }}</a></i> - {{ response.date }} - {{ response.type }}
     <form action="{{ url_for('post', post_id=post.id) }}" method="post">
-        <input type="text"name="rcontent"placeholder="Write a response..."style="background-color: rgb(46, 45, 45); color: white;">
+        <input type="text"name="rcontent"placeholder="Write a response...">
         <input type="hidden"name="post_id"value="{{ post.id }}">
         <input type="hidden"name="parent_id"value="{{ response.id }}">
-        <select name="rtype" style="background-color: rgb(46, 45, 45); color: white;">
+        <select name="rtype"">
             <option value="" disabled selected>Marks</option>
             <option value="agreed !">Agreed (!)</option>
             <option value="disagreed !">Disagreed (!)</option>
@@ -54,7 +54,7 @@
             <option value="suggestion !?">Suggestion (!?)</option>
             <option value="countershift !!">Countershift (!!)</option>
         </select>
-        <button type="submit" style="background-color: rgb(46, 45, 45); color: white;">Post Response</button>
+        <button type="submit">Post Response</button>
     </form>
     <p class="response-content">{{ response.content }}</p>
 

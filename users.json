@@ -1,8 +1,8 @@
 [
     {
-        "username": "Debatter",
-        "password": "scrypt:32768:8:1$m7XLSsU3Qu48D8zv$a7e7ed339b92e5845d26b64cc621e1e83c351e2ab95daabd847cc915a154657b182b3e7535d855c412ac7734ea6f2879fcd7986a9c1e74881fafe3c6fc51b5a1",
-        "email": "lautar622@gmail.com",
-        "joined": "Saturday, August 08, 2026, 12:50:59"
+        "username": "test",
+        "password": "scrypt:32768:8:1$L7znMdQ8zW5GDDK3$b875d83b0faadd18459b46d921977b245bfcd515d212de632bb9b4ff930a4f8cf7cd8ec74468eed5df67ed7fe479d7b44fda00425310e7323f4307073c1a31e7",
+        "email": "",
+        "joined": "Tuesday, August 11, 2026, 16:21:10"
     }
 ]
