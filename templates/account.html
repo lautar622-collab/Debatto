@@ -1,0 +1,31 @@
+<html lang="en">
+<head>
+    <title>Debatto - {{user.username}}</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    {% include "sidebar.html" %}
+    <div class="content">
+    <div class="defdiv">
+        <h1>{{user.username}}</h1>
+        <p style="font-size: small;"><i>{{user.role | default("User")}}</i></p>
+        <p style="font-size: small;">Joined {{user.joined}}</p>
+    </div>
+            <h1>Posts</h1>
+            <hr>
+{% if posts %}
+    {% for post in posts %}
+        <div class="postdiv">
+            <h2><a href="{{ url_for('post', post_id=post.id) }}" class="clickpost">{{ post.title }}</a></h2>
+            <p class="post-data">Seriousness: <b>{{ post.level }}</b> - ID: {{ post.id }} - {{ post.date }}</p>
+            <p>{{ post.content }}</p>
+            <hr>
+        </div>
+    {% endfor %}
+{% else %}
+    <i>This user hasn't posted anything yet.</i>
+{% endif %}
+    </div>
+</body>
+</html>

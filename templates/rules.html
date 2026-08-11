@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debatto</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    {% include "sidebar.html" %}
+    <div class="content">
+        <h1>Rules</h1>
+        <p>
+            <i>Note: These rules are not enforced and your posts will not be removed for not following them (except for Spam), but it is heavily discouraged to break them since it disrupts important debates.</i>
+            <h3>Rule 1: Spam</h3>
+            This is the only rule that will get your post removed from Debatto if you break it.
+            This rule includes: malicious links, lorem ipsum, keyboard smashing, and automated posting.
+            <h3>Rule 2: Unserious Content</h3>
+            Although unserious content is permitted, it is heavily discouraged.
+            Unserious debates disrupt debates that actually matter.
+            <h3>Rule 3: Pointless Hate</h3>
+            Hate is permitted when it complements or intensifies an argument, when it is used to make a point, or when it is used to defend against more hate; however, it should not be used on its own.
+        </p>
+    </div>
+</body>
+</html>
