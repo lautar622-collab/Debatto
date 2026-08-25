@@ -1,13 +1,15 @@
 from datetime import datetime
 date=datetime.now().strftime("%A, %B %d, %Y, %H:%M:%S")
-from datetime import datetime
 import json
 import random
+import os
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask import Flask, render_template, request, redirect, url_for, session
-
+from dotenv import load_dotenv
+load_dotenv()
 app = Flask(__name__)
-app.secret_key = "XTUA4PqnRyHOXUocRXCfCA0k0uTTOLb6"
+app.secret_key = os.environ.get("SECRET_KEY")
+if not app.secret_key: raise ValueError("No SECRET_KEY set for Flask application. Please set it in the .env file.")
 def find_response(responses, response_id):
     for response in responses:
         if response["id"] == response_id:return response
@@ -25,15 +27,22 @@ def newpost():
         with open("posts.json", "r") as file:posts = json.load(file)
         if posts:new_id = max(post["id"] for post in posts) + 1
         else:new_id = 1
-        title = request.form["title"]
-        content = request.form["content"]
-        level = request.form["level"]
+        title = request.form.get("title", "").strip()
+        content = request.form.get("content", "").strip()
+        level = request.form.get("level", "").strip()
+        if not title:return "Title is required.", 400
+        if not content:return "Content is required.", 400
+        if len(title) > 200:return "Title is too long.", 400
+        if len(content) > 5000:return "Content is too long.", 400
+        if not level:return "Level is required.", 400
+        if level not in {"1", "2", "3", "4", "5"}:return "Invalid level.", 400
+        level = int(level)
         topic1 = ""
         topic2 = ""
         topic3 = ""
-        if len(request.form.get("topic1", "").strip().lower().replace(" ", "-")) > 0:topic1 = request.form.get("topic1", "").strip().lower().replace(" ", "-")+","
-        if len(request.form.get("topic2", "").strip().lower().replace(" ", "-")) > 0:topic2 = request.form.get("topic2", "").strip().lower().replace(" ", "-")+","
-        if len(request.form.get("topic3", "").strip().lower().replace(" ", "-")) > 0:topic3 = request.form.get("topic3", "").strip().lower().replace(" ", "-")+","
+        if len(request.form.get("topic1", "").strip().lower().replace(" ", "-")) > 0:topic1 = request.form.get("topic1", "").strip().lower().replace(" ", "-")
+        if len(request.form.get("topic2", "").strip().lower().replace(" ", "-")) > 0:topic2 = request.form.get("topic2", "").strip().lower().replace(" ", "-")
+        if len(request.form.get("topic3", "").strip().lower().replace(" ", "-")) > 0:topic3 = request.form.get("topic3", "").strip().lower().replace(" ", "-")
         post = {
             "title": title,
             "content": content,
