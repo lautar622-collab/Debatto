@@ -11,7 +11,7 @@
     <div class="content">
         <h1>New Post</h1>
         <form action="/newpost" class="formpost" method="post">
-            <input type="text" placeholder="Title" name="title" class="ptitle">
+            <input type="text" placeholder="Title (up to 200 characters)" name="title" class="ptitle"><br><br>
                 <select aria-placeholder="Seriousness Level" name="level">
                 <option value="" disabled selected>Seriousness</option>
                 <option value="1">1- Joke</option>
@@ -20,9 +20,19 @@
                 <option value="4">4- Academic</option>
                 <option value="5">5- Brilliant</option>
             </select>
+            <select name="language" aria-placeholder="Language">
+                <option value="gb">English</option>
+                <option value="es">Español </option>
+                <option value="pt">Português</option>
+                <option value="fr">Français</option>
+                <option value="de">Deustch</option>
+                <option value="ru">русский</option>
+                <option value="ch">中国人</option>
+                <option value="jp">日本語</option>
+            </select>
             <br>
             <br>
-            <textarea placeholder="Content (up to 5000 characters)" 
+            <textarea placeholder="Content (up to level x 2000 characters)" 
             class="pcontent" maxlength="5000" name="content"></textarea> <p>Add topics</p>
             <input type="text" name="topic1" required>
             <input type="text" name="topic2">
