@@ -49,5 +49,4 @@ function showButtons() {
 {% if session.get("username") %}
     <a href="{{ url_for('profile', username=session['username']) }}">Account</a><br>
 {% endif %}
-        <a href="{{ url_for('rules')}}">Rules</a><br><br>
     </div>

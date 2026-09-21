@@ -8,11 +8,12 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask import Flask, render_template, request, redirect, url_for, session
 from dotenv import load_dotenv
 load_dotenv()
+# FLASK #
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY")
 def get_posts():
     db = getdb()
-    posts = db.execute("SELECT posts.id, posts.title, posts.content, posts.level, posts.language, posts.date, posts.user_id, COALESCE(users.username, 'Anonymous') AS username FROM posts LEFT JOIN users ON posts.user_id = users.id ORDER BY posts.date DESC").fetchall()
+    posts = db.execute("SELECT posts.id, posts.title, posts.content, posts.level, posts.language, posts.date, posts.userid, COALESCE(users.username, 'Anonymous') AS username FROM posts LEFT JOIN users ON posts.userid = users.id ORDER BY posts.date DESC").fetchall()
     result = []
     for post in posts:
         post = dict(post)
@@ -36,21 +37,21 @@ def build_response_tree(responses, parent_id=None):
     return result
 def get_post(post_id):
     db=getdb()
-    post=db.execute("SELECT posts.id, posts.title, posts.content, posts.level, posts.language, posts.date, posts.user_id, COALESCE(users.username, 'Anonymous') AS username FROM posts LEFT JOIN users ON posts.user_id = users.id WHERE posts.id = ?", (post_id,)).fetchone()
+    post=db.execute("SELECT posts.id, posts.title, posts.content, posts.level, posts.language, posts.date, posts.userid, COALESCE(users.username, 'Anonymous') AS username FROM posts LEFT JOIN users ON posts.userid = users.id WHERE posts.id = ?", (post_id,)).fetchone()
     if not post:
         db.close()
         return None
     post=dict(post)
     topics=db.execute("SELECT topics.name FROM topics JOIN post_topics ON topics.id = post_topics.topic_id WHERE post_topics.post_id = ?", (post_id,)).fetchall()
     post["topics"]=[topic["name"] for topic in topics]
-    responses=db.execute("SELECT responses.id, responses.content, responses.date, responses.user_id, responses.parent_id, COALESCE(users.username, 'Anonymous') AS username FROM responses LEFT JOIN users ON responses.user_id = users.id WHERE responses.post_id = ? ORDER BY responses.date ASC", (post_id,)).fetchall()
+    responses=db.execute("SELECT responses.id, responses.content, responses.date, responses.userid, responses.parent_id, COALESCE(users.username, 'Anonymous') AS username FROM responses LEFT JOIN users ON responses.userid = users.id WHERE responses.post_id = ? ORDER BY responses.date ASC", (post_id,)).fetchall()
     post["responses"]=build_response_tree(responses)
     db.close()
     return post
 @app.route('/post/<int:post_id>', methods=['GET', 'POST'])
 def post(post_id):
     db=getdb()
-    current_post=db.execute("SELECT posts.id, posts.title, posts.content, posts.level, posts.language, posts.date, posts.user_id, COALESCE(users.username, 'Anonymous') AS username FROM posts LEFT JOIN users ON posts.user_id = users.id WHERE posts.id = ?", (post_id,)).fetchone()
+    current_post=db.execute("SELECT posts.id, posts.title, posts.content, posts.level, posts.language, posts.date, posts.userid, COALESCE(users.username, 'Anonymous') AS username FROM posts LEFT JOIN users ON posts.userid = users.id WHERE posts.id = ?", (post_id,)).fetchone()
     if not current_post:
         db.close()
         return "Post not found", 404
@@ -68,7 +69,7 @@ def post(post_id):
             parent_id=int(parent_id)
         else:
             parent_id=None
-        db.execute("INSERT INTO responses (content, date, user_id, post_id, parent_id) VALUES (?, ?, ?, ?, ?)", (content, datetime.now().strftime("%A,%B,%d,%Y, %H:%M:%S"), session.get("user_id"), post_id, parent_id))
+        db.execute("INSERT INTO responses (content, date, userid, post_id, parent_id) VALUES (?, ?, ?, ?, ?)", (content, datetime.now().strftime("%A,%B,%d,%Y, %H:%M:%S"), session.get("userid"), post_id, parent_id))
         db.commit()
         db.close()
         return redirect(url_for("post", post_id=post_id))
@@ -94,10 +95,10 @@ def signup():
     password = generate_password_hash(rawpassword)
     cursor = db.execute("INSERT INTO users (username, password, email, joined) VALUES (?,?,?,?)",(username,password,email,datetime.now().strftime("%A, %B, %d, %Y, %H:%M:%S")))
     db.commit()
-    user_id = cursor.lastrowid
+    userid = cursor.lastrowid
     db.close()
     session["username"] = username
-    session["user_id"] = user_id
+    session["userid"] = userid
     return redirect(url_for("index"))
 @app.route("/login", methods=["POST"])
 def login():
@@ -109,12 +110,12 @@ def login():
     if not user: return "User not found"
     if not check_password_hash(user["password"],password): return "Incorrect password"
     session["username"] = user["username"]
-    session["user_id"] = user["id"]
+    session["userid"] = user["id"]
     return redirect(url_for("index"))
 @app.route("/logout")
 def logout():
     session.pop("username", None)
-    session.pop("user_id", None)
+    session.pop("userid", None)
     return redirect(url_for("index"))
 @app.route("/newpost", methods=["GET","POST"])
 def newpost():
@@ -129,9 +130,9 @@ def newpost():
         if level not in {"1","2","3","4","5"}: return "Invalid level",400
         level = int(level)
         language = request.form.get("language","gb")
-        user_id=session.get("user_id")
+        userid=session.get("userid")
         db = getdb()
-        cursor = db.execute("INSERT INTO posts (title,content,level,language,date,user_id) VALUES (?,?,?,?,?,?)", (title,content,level,language,datetime.now().strftime("%A,%B,%d,%Y, %H:%M:%S")))
+        cursor = db.execute("INSERT INTO posts (title,content,level,language,date,userid) VALUES (?,?,?,?,?,?)", (title,content,level,language,datetime.now().strftime("%A,%B,%d,%Y, %H:%M:%S"),userid))
         post_id = cursor.lastrowid
         for key in ["topic1","topic2","topic3"]:
             topic_name=request.form.get(key,"").strip().lower()
@@ -140,10 +141,10 @@ def newpost():
         if topic: topic_id = topic["id"]
         else: cursor = db.execute("INSERT INTO topics (name) VALUES (?)", (topic_name,))
         topic_id = cursor.lastrowid
-        db.execute("INSERT INTO post_topics (post_id, topic_id) VALUEs (?,?)", post_id,topic_id)
+        db.execute("INSERT INTO post_topics (postid, topicid) VALUES (?,?)", (post_id,topic_id))
         db.commit()
         db.close()
-        return redirect(url_for("/post/{post_id}"))
+        return redirect(url_for("/post/{postid}"))
     return render_template("newpost.html")
 @app.route("/user/<username>")
 def profile(username):
@@ -152,9 +153,26 @@ def profile(username):
     if not user:
         db.close()
         return "User not found", 404
-    posts=db.execute("SELECT posts.id, posts.title, posts.content, posts.level, posts.language, posts.date, users.username FROM posts JOIN users ON posts.user_id = users.id WHERE users.id = ? ORDER BY posts.id DESC", user["id"],).fetchall()
+    posts=db.execute("SELECT posts.id, posts.title, posts.content, posts.level, posts.language, posts.date, users.username FROM posts JOIN users ON posts.userid = users.id WHERE users.id = ? ORDER BY posts.id DESC", user["id"],).fetchall()
     user = dict(user)
     possts = [dict(posts) for post in posts]
     db.close()
     return render_template("account.html",user=user,posts=posts)
+@app.route("/search")
+def search():
+    query = request.args.get("q","").strip().lower()
+    db = getdb()
+    posts = db.execute("SELECT posts.id, posts.title, posts.content, posts.level, posts.language, posts.date, COALESCE (users.username, 'Anonymous') AS username FROM posts LEFT JOIN users ON posts.userid = users.id WHERE lower(posts.title) LIKE ? OR lower(posts.content) LIKE ? OR lower(COALESCE(users.username, 'Anonymous'))",(f"%{query}%)",f"%{query}%)",f"%{query}%)")).fetchall()
+    result = []
+    for post in posts:
+        post = dict(post)
+        topics = db.execute("SELECT topics.name FROM topics JOIN post_topics ON topics.id = post_topics.topic_id WHERE post_topics.post_id = =",(post["id"],)).fetchall()
+        post["topics"] = [
+            topic["name"]
+            for topic in topics
+            ]
+        result.append(post)
+    db.close()
+    return render_template("home.html",posts=result)
+
 if __name__ == "__main__":app.run(debug=True)
