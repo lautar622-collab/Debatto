@@ -17,7 +17,7 @@ def get_posts():
     result = []
     for post in posts:
         post = dict(post)
-        topics = db.execute("SELECT topics.name FROM topics JOIN post_topics ON topics.id = post_topics.topic_id WHERE post_topics.post_id = ?", (post['id'],)).fetchall()
+        topics = db.execute("SELECT topics.name FROM topics JOIN post_topics ON topics.id = post_topics.topicid WHERE post_topics.postid = ?", (post['id'],)).fetchall()
         post['topics'] = [topic['name'] for topic in topics]
         result.append(post)
     db.close()
@@ -30,7 +30,7 @@ def index():
 def build_response_tree(responses, parent_id=None):
     result = []
     for response in responses:
-        if response["parent_id"]==parent_id:
+        if response["responseid"]==parent_id:
             item=dict(response)
             item["responses"]=build_response_tree(responses, response["id"])
             result.append(item)
@@ -42,9 +42,9 @@ def get_post(post_id):
         db.close()
         return None
     post=dict(post)
-    topics=db.execute("SELECT topics.name FROM topics JOIN post_topics ON topics.id = post_topics.topic_id WHERE post_topics.post_id = ?", (post_id,)).fetchall()
+    topics=db.execute("SELECT topics.name FROM topics JOIN post_topics ON topics.id = post_topics.topicid WHERE post_topics.postid = ?", (post_id,)).fetchall()
     post["topics"]=[topic["name"] for topic in topics]
-    responses=db.execute("SELECT responses.id, responses.content, responses.date, responses.userid, responses.parent_id, COALESCE(users.username, 'Anonymous') AS username FROM responses LEFT JOIN users ON responses.userid = users.id WHERE responses.post_id = ? ORDER BY responses.date ASC", (post_id,)).fetchall()
+    responses=db.execute("SELECT responses.id, responses.content, responses.date, responses.userid, responses.responseid, COALESCE(users.username, 'Anonymous') AS username FROM responses LEFT JOIN users ON responses.userid = users.id WHERE responses.postid = ? ORDER BY responses.date ASC", (post_id,)).fetchall()
     post["responses"]=build_response_tree(responses)
     db.close()
     return post
@@ -69,7 +69,7 @@ def post(post_id):
             parent_id=int(parent_id)
         else:
             parent_id=None
-        db.execute("INSERT INTO responses (content, date, userid, post_id, parent_id) VALUES (?, ?, ?, ?, ?)", (content, datetime.now().strftime("%A,%B,%d,%Y, %H:%M:%S"), session.get("userid"), post_id, parent_id))
+        db.execute("INSERT INTO responses (content, type, date, userid, postid, responseid) VALUES (?, ?, ?, ?, ?, ?)", (content, resposetype, datetime.now().strftime("%A,%B,%d,%Y, %H:%M:%S"), session.get("userid"), post_id, parent_id))
         db.commit()
         db.close()
         return redirect(url_for("post", post_id=post_id))
@@ -105,7 +105,7 @@ def login():
     username=request.form.get("username","")
     password=request.form.get("password","")
     db = getdb()
-    user=db.execute("SELECT * FROM users WHERE lower(username) = lower(?)", (username,)).fetchone
+    user=db.execute("SELECT * FROM users WHERE lower(username) = lower(?)", (username,)).fetchone()
     db.close()
     if not user: return "User not found"
     if not check_password_hash(user["password"],password): return "Incorrect password"
@@ -138,13 +138,15 @@ def newpost():
             topic_name=request.form.get(key,"").strip().lower()
             if not topic_name: continue
             topic=db.execute("SELECT id FROM topics WHERE name = ?", (topic_name,)).fetchone()
-        if topic: topic_id = topic["id"]
-        else: cursor = db.execute("INSERT INTO topics (name) VALUES (?)", (topic_name,))
-        topic_id = cursor.lastrowid
-        db.execute("INSERT INTO post_topics (postid, topicid) VALUES (?,?)", (post_id,topic_id))
+            if topic:
+                topic_id = topic["id"]
+            else:
+                cursor = db.execute("INSERT INTO topics (name) VALUES (?)", (topic_name,))
+                topic_id = cursor.lastrowid
+            db.execute("INSERT INTO post_topics (postid, topicid) VALUES (?,?)", (post_id,topic_id))
         db.commit()
         db.close()
-        return redirect(url_for("/post/{postid}"))
+        return redirect(url_for("post", post_id=post_id))
     return render_template("newpost.html")
 @app.route("/user/<username>")
 def profile(username):
@@ -153,20 +155,20 @@ def profile(username):
     if not user:
         db.close()
         return "User not found", 404
-    posts=db.execute("SELECT posts.id, posts.title, posts.content, posts.level, posts.language, posts.date, users.username FROM posts JOIN users ON posts.userid = users.id WHERE users.id = ? ORDER BY posts.id DESC", user["id"],).fetchall()
+    posts=db.execute("SELECT posts.id, posts.title, posts.content, posts.level, posts.language, posts.date, users.username FROM posts JOIN users ON posts.userid = users.id WHERE users.id = ? ORDER BY posts.id DESC", (user["id"],)).fetchall()
     user = dict(user)
-    possts = [dict(posts) for post in posts]
+    posts = [dict(post) for post in posts]
     db.close()
     return render_template("account.html",user=user,posts=posts)
 @app.route("/search")
 def search():
     query = request.args.get("q","").strip().lower()
     db = getdb()
-    posts = db.execute("SELECT posts.id, posts.title, posts.content, posts.level, posts.language, posts.date, COALESCE (users.username, 'Anonymous') AS username FROM posts LEFT JOIN users ON posts.userid = users.id WHERE lower(posts.title) LIKE ? OR lower(posts.content) LIKE ? OR lower(COALESCE(users.username, 'Anonymous'))",(f"%{query}%)",f"%{query}%)",f"%{query}%)")).fetchall()
+    posts = db.execute("SELECT posts.id, posts.title, posts.content, posts.level, posts.language, posts.date, COALESCE (users.username, 'Anonymous') AS username FROM posts LEFT JOIN users ON posts.userid = users.id WHERE lower(posts.title) LIKE ? OR lower(posts.content) LIKE ? OR lower(COALESCE(users.username, 'Anonymous')) LIKE ?",(f"%{query}%",f"%{query}%",f"%{query}%")).fetchall()
     result = []
     for post in posts:
         post = dict(post)
-        topics = db.execute("SELECT topics.name FROM topics JOIN post_topics ON topics.id = post_topics.topic_id WHERE post_topics.post_id = =",(post["id"],)).fetchall()
+        topics = db.execute("SELECT topics.name FROM topics JOIN post_topics ON topics.id = post_topics.topicid WHERE post_topics.postid = ?",(post["id"],)).fetchall()
         post["topics"] = [
             topic["name"]
             for topic in topics
