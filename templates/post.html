@@ -15,6 +15,15 @@
             Seriousness: <b>{{ post.level }}</b> ID: {{ post.id }} - {{ post.date }}
         </p>
         <p class="response-content">{{ post.content }}</p>
+        {% if post.media %}
+        <div class="post-media-grid">
+            {% for item in post.media %}
+            <a href="{{ item.url }}" target="_blank" class="post-media-thumb">
+                <img src="{{ item.url }}" alt="{{ item.name }}">
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
          <form action="{{ url_for('post', post_id=post.id) }}" class="reply" method="post">
             <input type="text" name="rcontent" placeholder="Write a response..."">
             <input type="hidden" name="post_id" value="{{ post.id }}"> 

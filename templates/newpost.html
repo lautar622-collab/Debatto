@@ -10,7 +10,7 @@
     {% include "sidebar.html" %}
     <div class="content">
         <h1>New Post</h1>
-        <form action="/newpost" class="formpost" method="post">
+        <form action="/newpost" class="formpost" method="post" enctype="multipart/form-data">
             <input type="text" placeholder="Title (up to 200 characters)" name="title" class="ptitle"><br><br>
                 <select aria-placeholder="Seriousness Level" name="level">
                 <option value="" disabled selected>Seriousness</option>
@@ -38,8 +38,38 @@
             <input type="text" name="topic2">
             <input type="text" name="topic3">
             <br><br>
+            <!-- Image Upload -->
+            <p>Attach images <small>(optional · PNG, JPG, GIF, WEBP · max 5 MB each)</small></p>
+            <label class="upload-btn" for="image-input">
+                📎 Choose images
+                <input id="image-input" type="file" name="images" accept="image/png,image/jpeg,image/gif,image/webp" multiple style="display:none">
+            </label>
+            <div id="image-preview" class="image-preview-grid"></div>
+            <br>
             <button type="submit">Post</button>
         </form>
+        <script>
+            document.getElementById('image-input').addEventListener('change', function () {
+                const preview = document.getElementById('image-preview');
+                preview.innerHTML = '';
+                Array.from(this.files).forEach(function(file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'preview-thumb';
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.alt = file.name;
+                        const label = document.createElement('span');
+                        label.textContent = file.name;
+                        wrapper.appendChild(img);
+                        wrapper.appendChild(label);
+                        preview.appendChild(wrapper);
+                    };
+                    reader.readAsDataURL(file);
+                });
+            });
+        </script>
     </div>
 
 </body>

@@ -1,16 +1,28 @@
 # IMPORTS #
 import json
+import uuid
 from db import getdb
 from datetime import datetime
 import os
 import random
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from flask import Flask, render_template, request, redirect, url_for, session
 from dotenv import load_dotenv
 load_dotenv()
 # FLASK #
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY")
+
+# UPLOAD CONFIG #
+UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "static", "uploads")
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
+MAX_IMAGE_SIZE_MB = 5
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+app.config["MAX_CONTENT_LENGTH"] = MAX_IMAGE_SIZE_MB * 1024 * 1024
+
+def allowed_file(filename):
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 def get_posts():
     db = getdb()
     posts = db.execute("SELECT posts.id, posts.title, posts.content, posts.level, posts.language, posts.date, posts.userid, COALESCE(users.username, 'Anonymous') AS username FROM posts LEFT JOIN users ON posts.userid = users.id ORDER BY posts.date DESC").fetchall()
@@ -46,6 +58,8 @@ def get_post(post_id):
     post["topics"]=[topic["name"] for topic in topics]
     responses=db.execute("SELECT responses.id, responses.content, responses.date, responses.userid, responses.responseid, COALESCE(users.username, 'Anonymous') AS username FROM responses LEFT JOIN users ON responses.userid = users.id WHERE responses.postid = ? ORDER BY responses.date ASC", (post_id,)).fetchall()
     post["responses"]=build_response_tree(responses)
+    media=db.execute("SELECT id, mediatype, url, name FROM media WHERE postid = ? AND mediatype = 'image'", (post_id,)).fetchall()
+    post["media"]=[dict(m) for m in media]
     db.close()
     return post
 @app.route('/post/<int:post_id>', methods=['GET', 'POST'])
@@ -126,8 +140,8 @@ def newpost():
         if not title: return "Title is required",400
         if not content: return "Content is required",400
         if len(title) > 200: return "Title is too long",400
-        if len(content) > int(level) * 2000: return "Content is too long"
         if level not in {"1","2","3","4","5"}: return "Invalid level",400
+        if len(content) > int(level) * 2000: return "Content is too long"
         level = int(level)
         language = request.form.get("language","gb")
         userid=session.get("userid")
@@ -143,7 +157,20 @@ def newpost():
             else:
                 cursor = db.execute("INSERT INTO topics (name) VALUES (?)", (topic_name,))
                 topic_id = cursor.lastrowid
-            db.execute("INSERT INTO post_topics (postid, topicid) VALUES (?,?)", (post_id,topic_id))
+            db.execute("INSERT OR IGNORE INTO post_topics (postid, topicid) VALUES (?,?)", (post_id,topic_id))
+        # Handle image uploads
+        images = request.files.getlist("images")
+        for image in images:
+            if image and image.filename and allowed_file(image.filename):
+                ext = image.filename.rsplit(".", 1)[1].lower()
+                unique_name = f"{uuid.uuid4().hex}.{ext}"
+                save_path = os.path.join(app.config["UPLOAD_FOLDER"], unique_name)
+                image.save(save_path)
+                url = f"/static/uploads/{unique_name}"
+                db.execute(
+                    "INSERT INTO media (mediatype, url, name, postid) VALUES (?,?,?,?)",
+                    ("image", url, secure_filename(image.filename), post_id)
+                )
         db.commit()
         db.close()
         return redirect(url_for("post", post_id=post_id))

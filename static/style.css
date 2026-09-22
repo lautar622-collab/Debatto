@@ -142,3 +142,70 @@ button {
     }
 
 }
+
+/* --- Image Upload --- */
+.upload-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background-color: #2a2a2a;
+    color: rgb(128, 174, 255);
+    border: 1px solid #3a3a3a;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: background-color 0.2s;
+}
+
+.upload-btn:hover {
+    background-color: #333;
+}
+
+.image-preview-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.preview-thumb {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    max-width: 120px;
+}
+
+.preview-thumb img {
+    width: 120px;
+    height: 90px;
+    object-fit: cover;
+    border: 1px solid #3a3a3a;
+}
+
+.preview-thumb span {
+    font-size: 0.7em;
+    color: rgb(120, 120, 120);
+    word-break: break-all;
+    text-align: center;
+}
+
+/* --- Post media display --- */
+.post-media-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 12px 0;
+}
+
+.post-media-thumb img {
+    width: 180px;
+    height: 130px;
+    object-fit: cover;
+    border: 1px solid #3a3a3a;
+    transition: opacity 0.2s;
+}
+
+.post-media-thumb:hover img {
+    opacity: 0.8;
+}
