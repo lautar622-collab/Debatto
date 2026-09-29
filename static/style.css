@@ -219,3 +219,33 @@ button {
     display: block;
     width: 100%;
 }
+
+/* --- Language selector --- */
+.lang-selector {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 10px;
+}
+
+.lang-btn {
+    padding: 3px 8px;
+    font-size: 0.75rem;
+    background: transparent;
+    border: 1px solid #555;
+    border-radius: 4px;
+    cursor: pointer;
+    opacity: 0.6;
+    color: rgb(169, 169, 169);
+    transition: opacity 0.2s, border-color 0.2s;
+}
+
+.lang-btn:hover {
+    opacity: 0.85;
+}
+
+.lang-btn.active {
+    opacity: 1;
+    border-color: rgb(128, 174, 255);
+    font-weight: bold;
+    color: rgb(128, 174, 255);
+}

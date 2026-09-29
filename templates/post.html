@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <title>{{ post.title }} - Debatto</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
@@ -12,7 +12,7 @@
         <h1>{{ post.title }}</h1>
         -<i><a href="{{ url_for('profile', username=post.username) }}">{{ post.username }}</a></i>
         <p class="response-data">
-            Seriousness: <b>{{ post.level }}</b> ID: {{ post.id }} - {{ post.date }}
+            <span data-i18n="seriousness_detail">Seriousness:</span> <b>{{ post.level }}</b> ID: {{ post.id }} - {{ post.date }}
         </p>
         <p class="response-content">{{ post.content }}</p>
         {% if post.media %}
@@ -24,31 +24,33 @@
             </a>
             {% elif item.mediatype == "video" %}
             <div class="post-video-embed">
-                <iframe src="{{ item.url }}" frameborder="0" width="100%" height="315"></iframe>
+                <iframe src="{{ item.url }}" frameborder="0" width="100%" height="315"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen></iframe>
             </div>
             {% endif %}
             {% endfor %}
         </div>
         {% endif %}
          <form action="{{ url_for('post', post_id=post.id) }}" class="reply" method="post">
-            <input type="text" name="rcontent" placeholder="Write a response...">
-            <input type="hidden" name="post_id" value="{{ post.id }}"> 
+            <input type="text" name="rcontent" placeholder="Write a response..." data-i18n-placeholder="response_placeholder">
+            <input type="hidden" name="post_id" value="{{ post.id }}">
             <br>
             <select name="rtype">
-                <option value="" disabled selected>Marks</option>
-                <option value="agreed !">Agreed (!)</option>
-                <option value="disagreed !">Disgreed (!)</option>
-                <option value="neutral -">Neutral (-)</option>
-                <option value="clarification +">Clarification (+)</option>
-                <option value="doubt ?">Doubt (?)</option>
-                <option value="suggestion !?">Suggestion (!?)</option>
-                <option value="countershift !!">Countershift (!!)</option>
+                <option value="" disabled selected data-i18n="marks_label">Marks</option>
+                <option value="agreed !" data-i18n="mark_agreed">Agreed (!)</option>
+                <option value="disagreed !" data-i18n="mark_disagreed">Disagreed (!)</option>
+                <option value="neutral -" data-i18n="mark_neutral">Neutral (-)</option>
+                <option value="clarification +" data-i18n="mark_clarification">Clarification (+)</option>
+                <option value="doubt ?" data-i18n="mark_doubt">Doubt (?)</option>
+                <option value="suggestion !?" data-i18n="mark_suggestion">Suggestion (!?)</option>
+                <option value="countershift !!" data-i18n="mark_countershift">Countershift (!!)</option>
             </select>
-            <button type="submit"">Post Response</button>
+            <button type="submit" data-i18n="btn_post_response">Post Response</button>
         </form>
     </div>
     <hr>
-    <h2>Debate</h2>
+    <h2 data-i18n="debate_title">Debate</h2>
     {% macro show_responses(responses, depth = 1) %}
         {% for response in responses %}
             <div class="response" style="margin-left: {{ depth * 30 }}px">
@@ -56,20 +58,20 @@
     ID: {{ response.id }}
     -<i> <a href="{{ url_for('profile', username=response.username) }}">{{ response.username }}</a></i> - {{ response.date }} - {{ response.type }}
     <form action="{{ url_for('post', post_id=post.id) }}" method="post">
-        <input type="text"name="rcontent"placeholder="Write a response...">
-        <input type="hidden"name="post_id"value="{{ post.id }}">
-        <input type="hidden"name="parent_id"value="{{ response.id }}">
-        <select name="rtype"">
-            <option value="" disabled selected>Marks</option>
-            <option value="agreed !">Agreed (!)</option>
-            <option value="disagreed !">Disagreed (!)</option>
-            <option value="neutral -">Neutral (-)</option>
-            <option value="clarification +">Clarification (+)</option>
-            <option value="doubt ?">Doubt (?)</option>
-            <option value="suggestion !?">Suggestion (!?)</option>
-            <option value="countershift !!">Countershift (!!)</option>
+        <input type="text" name="rcontent" placeholder="Write a response..." data-i18n-placeholder="response_placeholder">
+        <input type="hidden" name="post_id" value="{{ post.id }}">
+        <input type="hidden" name="parent_id" value="{{ response.id }}">
+        <select name="rtype">
+            <option value="" disabled selected data-i18n="marks_label">Marks</option>
+            <option value="agreed !" data-i18n="mark_agreed">Agreed (!)</option>
+            <option value="disagreed !" data-i18n="mark_disagreed">Disagreed (!)</option>
+            <option value="neutral -" data-i18n="mark_neutral">Neutral (-)</option>
+            <option value="clarification +" data-i18n="mark_clarification">Clarification (+)</option>
+            <option value="doubt ?" data-i18n="mark_doubt">Doubt (?)</option>
+            <option value="suggestion !?" data-i18n="mark_suggestion">Suggestion (!?)</option>
+            <option value="countershift !!" data-i18n="mark_countershift">Countershift (!!)</option>
         </select>
-        <button type="submit">Post Response</button>
+        <button type="submit" data-i18n="btn_post_response">Post Response</button>
     </form>
     <p class="response-content">{{ response.content }}</p>
 
