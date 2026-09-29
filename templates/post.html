@@ -18,9 +18,15 @@
         {% if post.media %}
         <div class="post-media-grid">
             {% for item in post.media %}
+            {% if item.mediatype == "image" %}
             <a href="{{ item.url }}" target="_blank" class="post-media-thumb">
                 <img src="{{ item.url }}" alt="{{ item.name }}">
             </a>
+            {% elif item.mediatype == "video" %}
+            <div class="post-video-embed">
+                <iframe src="{{ item.url }}" frameborder="0" width="100%" height="315"></iframe>
+            </div>
+            {% endif %}
             {% endfor %}
         </div>
         {% endif %}
