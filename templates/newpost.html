@@ -45,7 +45,10 @@
                 <input id="image-input" type="file" name="images" accept="image/png,image/jpeg,image/gif,image/webp" multiple style="display:none">
             </label>
             <div id="image-preview" class="image-preview-grid"></div>
-            <br>
+            <p>Attach a video <small>(optional · paste a YouTube or direct video URL)</small></p>
+            <input type="url" id="video-url-input" name="video_url" placeholder="https://www.youtube.com/watch?v=..." style="width: 100%;">
+            <div id="video-preview" style="margin-top: 10px;">
+            </div>
             <button type="submit">Post</button>
         </form>
         <script>
@@ -69,6 +72,35 @@
                     reader.readAsDataURL(file);
                 });
             });
+            document.getElementById("video-url-input").addEventListener("input", function () {
+                const url = this.value.trim();
+                const preview = document.getElementById("video-preview");
+                preview.innerHTML = "";
+                if (!url) return;
+                const embedUrl = convertToEmbed(url);
+                if (embedUrl) {
+                    const iframe = document.createElement("iframe");
+                    iframe.src = embedUrl;
+                    iframe.width = "100%";
+                    iframe.height = "250";
+                    iframe.frameBorder = "0";
+                    iframe.allowFullscreen = true;
+                    preview.appendChild(iframe);
+                } else {
+                    const video = document.createElement("video");
+                    video.src = url;
+                    video.controls = true;
+                    video.style.width = "100%";
+                    preview.appendChild("video");
+                }
+            });
+            function convertToEmbed(url) {
+                const ytMatch = url.match(/youtube\.com\/watch\?v=([^&]+)/);
+                if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`;
+                const ytShort = url.match(/youtu\.be\/[^?]+)/);
+                if (ytShort) return `https://www.youtube.com/embed/${ytShort[1]}`;
+                return null;
+            }
         </script>
     </div>
 

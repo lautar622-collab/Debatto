@@ -25,10 +25,10 @@
         </div>
         {% endif %}
          <form action="{{ url_for('post', post_id=post.id) }}" class="reply" method="post">
-            <input type="text" name="rcontent" placeholder="Write a response..."">
+            <input type="text" name="rcontent" placeholder="Write a response...">
             <input type="hidden" name="post_id" value="{{ post.id }}"> 
             <br>
-            <select name="rtype"">
+            <select name="rtype">
                 <option value="" disabled selected>Marks</option>
                 <option value="agreed !">Agreed (!)</option>
                 <option value="disagreed !">Disgreed (!)</option>

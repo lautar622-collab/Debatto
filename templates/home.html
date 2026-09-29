@@ -24,6 +24,15 @@
     </p>
     <p class="post-content"><a class="clickpost" href="{{ url_for('post', post_id=post.id) }}">{{ post.content }}</a></p>
 </div>
+        {% if post.media %}
+        <div class="post-media-grid">
+            {% for item in post.media %}
+            <a href="{{ item.url }}" target="_blank" class="post-media-thumb">
+                <img src="{{ item.url }}" alt="{{ item.name }}">
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
 <hr>
         {% endfor %}
         <br>

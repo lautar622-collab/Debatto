@@ -31,6 +31,8 @@ def get_posts():
         post = dict(post)
         topics = db.execute("SELECT topics.name FROM topics JOIN post_topics ON topics.id = post_topics.topicid WHERE post_topics.postid = ?", (post['id'],)).fetchall()
         post['topics'] = [topic['name'] for topic in topics]
+        media=db.execute("SELECT id, mediatype, url, name FROM media WHERE postid = ?", (post["id"],)).fetchall()
+        post["media"]=[dict(m) for m in media]
         result.append(post)
     db.close()
     return result
@@ -58,7 +60,7 @@ def get_post(post_id):
     post["topics"]=[topic["name"] for topic in topics]
     responses=db.execute("SELECT responses.id, responses.content, responses.date, responses.userid, responses.responseid, COALESCE(users.username, 'Anonymous') AS username FROM responses LEFT JOIN users ON responses.userid = users.id WHERE responses.postid = ? ORDER BY responses.date ASC", (post_id,)).fetchall()
     post["responses"]=build_response_tree(responses)
-    media=db.execute("SELECT id, mediatype, url, name FROM media WHERE postid = ? AND mediatype = 'image'", (post_id,)).fetchall()
+    media=db.execute("SELECT id, mediatype, url, name FROM media WHERE postid = ?", (post_id,)).fetchall()
     post["media"]=[dict(m) for m in media]
     db.close()
     return post
@@ -158,7 +160,6 @@ def newpost():
                 cursor = db.execute("INSERT INTO topics (name) VALUES (?)", (topic_name,))
                 topic_id = cursor.lastrowid
             db.execute("INSERT OR IGNORE INTO post_topics (postid, topicid) VALUES (?,?)", (post_id,topic_id))
-        # Handle image uploads
         images = request.files.getlist("images")
         for image in images:
             if image and image.filename and allowed_file(image.filename):
@@ -171,6 +172,9 @@ def newpost():
                     "INSERT INTO media (mediatype, url, name, postid) VALUES (?,?,?,?)",
                     ("image", url, secure_filename(image.filename), post_id)
                 )
+        video_url = request.form.get("video_url","").strip()
+        if video_url:
+            db.execute("INSERT INTO media (mediatype, url, name, postid) VALUES (?,?,?,?)", ("video", video_url, "video", post_id))
         db.commit()
         db.close()
         return redirect(url_for("post", post_id=post_id))
