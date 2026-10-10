@@ -4,7 +4,7 @@ from flask import g
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 INSTANCE_DIR = os.path.join(BASE_DIR, "instance")
-DATABASE=os.path.join("instance","debatto.db")
+DATABASE=os.path.join(INSTANCE_DIR,"debatto.db")
 def getdb():
     if "db" not in g:
         os.makedirs(INSTANCE_DIR, exist_ok=True)
