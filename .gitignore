@@ -1,4 +1,4 @@
 .env
-newlogo.png
+__pycache__/
 instance/
 static/uploads/
