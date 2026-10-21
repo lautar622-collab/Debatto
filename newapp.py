@@ -134,14 +134,25 @@ def logout():
     session.pop("username", None)
     session.pop("userid", None)
     return redirect(url_for("index"))
-@app.route("/newpost", methods=["GET","POST"])
+@app.route("/newpost", methods=["GET", "POST"])
 def newpost():
-     print("DEBUG 1: conectando con SQLite", flush=True)
+    if request.method == "POST":
+        title = request.form.get("title", "").strip()
+        content = request.form.get("content", "")
+        level = request.form.get("level", "")
+        language = request.form.get("language", "gb")
+        userid = session.get("userid")
+        if not title:
+            return "Title is required", 400
+        if not content:
+            return "Content is required", 400
+        if level not in {"1", "2", "3", "4", "5"}:
+            return "Invalid level", 400
+        level = int(level)
+        print("DEBUG 1: conectando con SQLite", flush=True)
         db = getdb()
-
         try:
             print("DEBUG 2: insertando post", flush=True)
-
             cursor = db.execute(
                 """
                 INSERT INTO posts
@@ -157,21 +168,16 @@ def newpost():
                     userid
                 )
             )
-
             post_id = cursor.lastrowid
             print("DEBUG 3: post creado", post_id, flush=True)
-
             for key in ["topic1", "topic2", "topic3"]:
                 topic_name = request.form.get(key, "").strip().lower()
-
                 if not topic_name:
                     continue
-
                 topic = db.execute(
                     "SELECT id FROM topics WHERE name = ?",
                     (topic_name,)
                 ).fetchone()
-
                 if topic:
                     topic_id = topic["id"]
                 else:
@@ -180,7 +186,6 @@ def newpost():
                         (topic_name,)
                     )
                     topic_id = cursor.lastrowid
-
                 db.execute(
                     """
                     INSERT OR IGNORE INTO post_topics
@@ -188,22 +193,18 @@ def newpost():
                     """,
                     (post_id, topic_id)
                 )
-
             print("DEBUG 4: temas procesados", flush=True)
-
-            # Por ahora, probamos sin guardar imágenes ni videos.
             db.commit()
             print("DEBUG 5: commit realizado", flush=True)
-
         except Exception:
             app.logger.exception("ERROR AL CREAR PUBLICACION")
             db.rollback()
             raise
-
         finally:
             db.close()
-
         return redirect(url_for("post", post_id=post_id))
+    return render_template("newpost.html")
+
     # if request.method=="POST":
     #     title=request.form.get("title","").strip()
     #     content=request.form.get("content","")
