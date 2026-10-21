@@ -2,7 +2,7 @@
 import re
 import json
 import uuid
-from db import getdb
+from db import getdb, close_db, init_app
 from datetime import datetime
 import os
 import random
@@ -14,6 +14,7 @@ load_dotenv()
 # FLASK #
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY")
+init_app(app)
 
 # UPLOAD CONFIG #
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "static", "uploads")
@@ -35,7 +36,6 @@ def get_posts():
         media=db.execute("SELECT id, mediatype, url, name FROM media WHERE postid = ?", (post["id"],)).fetchall()
         post["media"]=[dict(m) for m in media]
         result.append(post)
-    db.close()
     return result
 @app.route('/')
 def index():
@@ -54,7 +54,6 @@ def get_post(post_id):
     db=getdb()
     post=db.execute("SELECT posts.id, posts.title, posts.content, posts.level, posts.language, posts.date, posts.userid, COALESCE(users.username, 'Anonymous') AS username FROM posts LEFT JOIN users ON posts.userid = users.id WHERE posts.id = ?", (post_id,)).fetchone()
     if not post:
-        db.close()
         return None
     post=dict(post)
     topics=db.execute("SELECT topics.name FROM topics JOIN post_topics ON topics.id = post_topics.topicid WHERE post_topics.postid = ?", (post_id,)).fetchall()
@@ -63,35 +62,43 @@ def get_post(post_id):
     post["responses"]=build_response_tree(responses)
     media=db.execute("SELECT id, mediatype, url, name FROM media WHERE postid = ?", (post_id,)).fetchall()
     post["media"]=[dict(m) for m in media]
-    db.close()
     return post
 @app.route('/post/<int:post_id>', methods=['GET', 'POST'])
 def post(post_id):
-    db=getdb()
-    current_post=db.execute("SELECT posts.id, posts.title, posts.content, posts.level, posts.language, posts.date, posts.userid, COALESCE(users.username, 'Anonymous') AS username FROM posts LEFT JOIN users ON posts.userid = users.id WHERE posts.id = ?", (post_id,)).fetchone()
-    if not current_post:
-        db.close()
-        return "Post not found", 404
-    if request.method=="POST":
-        content=request.form.get("rcontent", "").strip()
-        resposetype=request.form.get("rtype", "").strip()
-        parent_id=request.form.get("parent_id")
+    if request.method == "POST":
+        db = getdb()
+        content = request.form.get("rcontent", "").strip()
+        resposetype = request.form.get("rtype", "").strip()
+        parent_id = request.form.get("parent_id")
+
         if not content:
-            db.close()
             return "Response content cannot be empty", 400
         if not resposetype:
-            db.close()
             return "Response Type Required", 400
-        if parent_id:
-            parent_id=int(parent_id)
-        else:
-            parent_id=None
-        db.execute("INSERT INTO responses (content, type, date, userid, postid, responseid) VALUES (?, ?, ?, ?, ?, ?)", (content, resposetype, datetime.now().strftime("%A,%B,%d,%Y, %H:%M:%S"), session.get("userid"), post_id, parent_id))
+
+        parent_id = int(parent_id) if parent_id else None
+
+        db.execute(
+            """
+            INSERT INTO responses (content, type, date, userid, postid, responseid)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                content,
+                resposetype,
+                datetime.now().strftime("%A,%B,%d,%Y, %H:%M:%S"),
+                session.get("userid"),
+                post_id,
+                parent_id
+            )
+        )
         db.commit()
-        db.close()
         return redirect(url_for("post", post_id=post_id))
-    db.close()
-    current_post=get_post(post_id)
+
+    current_post = get_post(post_id)
+    if not current_post:
+        return "Post not found", 404
+
     return render_template("post.html", post=current_post)
 @app.route("/signup", methods=["POST"])
 def signup():
@@ -134,29 +141,44 @@ def logout():
     session.pop("username", None)
     session.pop("userid", None)
     return redirect(url_for("index"))
+
 @app.route("/newpost", methods=["GET", "POST"])
 def newpost():
     if request.method == "POST":
         title = request.form.get("title", "").strip()
-        content = request.form.get("content", "")
+        content = request.form.get("content", "").strip()
         level = request.form.get("level", "")
-        language = request.form.get("language", "gb")
-        userid = session.get("userid")
+
+        # Validaciones
         if not title:
             return "Title is required", 400
+
         if not content:
             return "Content is required", 400
+
+        if len(title) > 200:
+            return "Title is too long", 400
+
         if level not in {"1", "2", "3", "4", "5"}:
             return "Invalid level", 400
+
         level = int(level)
-        print("DEBUG 1: conectando con SQLite", flush=True)
+
+        if len(content) > level * 2000:
+            return "Content is too long", 400
+
+        language = request.form.get("language", "gb")
+        userid = session.get("userid")
+
+        # Conexión a la base de datos
         db = getdb()
+
         try:
-            print("DEBUG 2: insertando post", flush=True)
+            # Crear publicación
             cursor = db.execute(
                 """
                 INSERT INTO posts
-                (title, content, level, language, date, userid)
+                    (title, content, level, language, date, userid)
                 VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 (
@@ -164,20 +186,25 @@ def newpost():
                     content,
                     level,
                     language,
-                    datetime.now().strftime("%A,%B,%d,%Y, %H:%M:%S"),
+                    datetime.now().strftime("%A, %B %d, %Y, %H:%M:%S"),
                     userid
                 )
             )
+
             post_id = cursor.lastrowid
-            print("DEBUG 3: post creado", post_id, flush=True)
+
+            # Guardar temas
             for key in ["topic1", "topic2", "topic3"]:
                 topic_name = request.form.get(key, "").strip().lower()
+
                 if not topic_name:
                     continue
+
                 topic = db.execute(
                     "SELECT id FROM topics WHERE name = ?",
                     (topic_name,)
                 ).fetchone()
+
                 if topic:
                     topic_id = topic["id"]
                 else:
@@ -186,75 +213,90 @@ def newpost():
                         (topic_name,)
                     )
                     topic_id = cursor.lastrowid
+
                 db.execute(
                     """
-                    INSERT OR IGNORE INTO post_topics
-                    (postid, topicid) VALUES (?, ?)
+                    INSERT OR IGNORE INTO post_topics (postid, topicid)
+                    VALUES (?, ?)
                     """,
                     (post_id, topic_id)
                 )
-            print("DEBUG 4: temas procesados", flush=True)
+
+            # Guardar imágenes
+            os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+
+            images = request.files.getlist("images")
+
+            for image in images:
+                if (
+                    image
+                    and image.filename
+                    and allowed_file(image.filename)
+                ):
+                    ext = image.filename.rsplit(".", 1)[1].lower()
+                    unique_name = f"{uuid.uuid4().hex}.{ext}"
+
+                    save_path = os.path.join(
+                        app.config["UPLOAD_FOLDER"],
+                        unique_name
+                    )
+
+                    image.save(save_path)
+
+                    url = f"/static/uploads/{unique_name}"
+
+                    db.execute(
+                        """
+                        INSERT INTO media (mediatype, url, name, postid)
+                        VALUES (?, ?, ?, ?)
+                        """,
+                        (
+                            "image",
+                            url,
+                            secure_filename(image.filename),
+                            post_id
+                        )
+                    )
+
+            # Guardar video de YouTube
+            video_url = request.form.get("video_url", "").strip()
+
+            if video_url:
+                yt_match = re.search(
+                    r"(?:youtube\.com/(?:watch\?v=|shorts/|embed/)|youtu\.be/)([A-Za-z0-9_-]{11})",
+                    video_url
+                )
+
+                if yt_match:
+                    video_url = (
+                        f"https://www.youtube.com/embed/"
+                        f"{yt_match.group(1)}"
+                    )
+
+                db.execute(
+                    """
+                    INSERT INTO media (mediatype, url, name, postid)
+                    VALUES (?, ?, ?, ?)
+                    """,
+                    ("video", video_url, "video", post_id)
+                )
+
+            # Confirmar los cambios
             db.commit()
-            print("DEBUG 5: commit realizado", flush=True)
+
         except Exception:
-            app.logger.exception("ERROR AL CREAR PUBLICACION")
             db.rollback()
-            raise
+            app.logger.exception("Error al crear una publicación")
+            return "Error al crear la publicación. Revisá los logs de Render.", 500
+
         finally:
-            db.close()
+            close_db()
+
         return redirect(url_for("post", post_id=post_id))
+
     return render_template("newpost.html")
 
-    # if request.method=="POST":
-    #     title=request.form.get("title","").strip()
-    #     content=request.form.get("content","")
-    #     level=request.form.get("level","")
-    #     if not title: return "Title is required",400
-    #     if not content: return "Content is required",400
-    #     if len(title) > 200: return "Title is too long",400
-    #     if level not in {"1","2","3","4","5"}: return "Invalid level",400
-    #     if len(content) > int(level) * 2000: return "Content is too long"
-    #     level = int(level)
-    #     language = request.form.get("language","gb")
-    #     userid=session.get("userid")
-    #     db = getdb()
-    #     cursor = db.execute("INSERT INTO posts (title,content,level,language,date,userid) VALUES (?,?,?,?,?,?)", (title,content,level,language,datetime.now().strftime("%A,%B,%d,%Y, %H:%M:%S"),userid))
-    #     post_id = cursor.lastrowid
-    #     for key in ["topic1","topic2","topic3"]:
-    #         topic_name=request.form.get(key,"").strip().lower()
-    #         if not topic_name: continue
-    #         topic=db.execute("SELECT id FROM topics WHERE name = ?", (topic_name,)).fetchone()
-    #         if topic:
-    #             topic_id = topic["id"]
-    #         else:
-    #             cursor = db.execute("INSERT INTO topics (name) VALUES (?)", (topic_name,))
-    #             topic_id = cursor.lastrowid
-    #         db.execute("INSERT OR IGNORE INTO post_topics (postid, topicid) VALUES (?,?)", (post_id,topic_id))
-    #     images = request.files.getlist("images")
-    #     for image in images:
-    #         if image and image.filename and allowed_file(image.filename):
-    #             ext = image.filename.rsplit(".", 1)[1].lower()
-    #             unique_name = f"{uuid.uuid4().hex}.{ext}"
-    #             os.makedirs(app.config("UPLOAD_FOLDER"), exist_ok=True)
-    #             save_path = os.path.join(app.config["UPLOAD_FOLDER"], unique_name)
-    #             image.save(save_path)
-    #             url = f"/static/uploads/{unique_name}"
-    #             db.execute(
-    #                 "INSERT INTO media (mediatype, url, name, postid) VALUES (?,?,?,?)",
-    #                 ("image", url, secure_filename(image.filename), post_id)
-    #             )
-    #     video_url = request.form.get("video_url","").strip()
-    #     if video_url:
-    #         # Convert any YouTube URL to embed format
-    #         import re
-    #         yt_match = re.search(r'(?:youtube\.com/(?:watch\?v=|shorts/|embed/)|youtu\.be/)([A-Za-z0-9_-]{11})', video_url)
-    #         if yt_match:
-    #             video_url = f"https://www.youtube.com/embed/{yt_match.group(1)}"
-    #         db.execute("INSERT INTO media (mediatype, url, name, postid) VALUES (?,?,?,?)", ("video", video_url, "video", post_id))
-    #     db.commit()
-    #     db.close()
-    #     return redirect(url_for("post", post_id=post_id))
-    # return render_template("newpost.html")
+
 @app.route("/user/<username>")
 def profile(username):
     db = getdb()
