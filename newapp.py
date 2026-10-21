@@ -137,9 +137,6 @@ def logout():
 @app.route("/newpost", methods=["GET","POST"])
 def newpost():
     if request.method=="POST":
-        print("DEBUG NEWPOST: form", flush=True)
-        print("DEBUG NEWPOST: tags", list(request.form.keys()), flush=True)
-        print("DEBUG NEWPOST: archivos", list(request.files.keys()), flush=True)
         title=request.form.get("title","").strip()
         content=request.form.get("content","")
         level=request.form.get("level","")
