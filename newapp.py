@@ -166,6 +166,7 @@ def newpost():
             if image and image.filename and allowed_file(image.filename):
                 ext = image.filename.rsplit(".", 1)[1].lower()
                 unique_name = f"{uuid.uuid4().hex}.{ext}"
+                os.makedirs(app.config("UPLOAD_FOLDER"), exist_ok=True)
                 save_path = os.path.join(app.config["UPLOAD_FOLDER"], unique_name)
                 image.save(save_path)
                 url = f"/static/uploads/{unique_name}"
