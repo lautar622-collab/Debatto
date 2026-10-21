@@ -136,56 +136,124 @@ def logout():
     return redirect(url_for("index"))
 @app.route("/newpost", methods=["GET","POST"])
 def newpost():
-    if request.method=="POST":
-        title=request.form.get("title","").strip()
-        content=request.form.get("content","")
-        level=request.form.get("level","")
-        if not title: return "Title is required",400
-        if not content: return "Content is required",400
-        if len(title) > 200: return "Title is too long",400
-        if level not in {"1","2","3","4","5"}: return "Invalid level",400
-        if len(content) > int(level) * 2000: return "Content is too long"
-        level = int(level)
-        language = request.form.get("language","gb")
-        userid=session.get("userid")
+     print("DEBUG 1: conectando con SQLite", flush=True)
         db = getdb()
-        cursor = db.execute("INSERT INTO posts (title,content,level,language,date,userid) VALUES (?,?,?,?,?,?)", (title,content,level,language,datetime.now().strftime("%A,%B,%d,%Y, %H:%M:%S"),userid))
-        post_id = cursor.lastrowid
-        for key in ["topic1","topic2","topic3"]:
-            topic_name=request.form.get(key,"").strip().lower()
-            if not topic_name: continue
-            topic=db.execute("SELECT id FROM topics WHERE name = ?", (topic_name,)).fetchone()
-            if topic:
-                topic_id = topic["id"]
-            else:
-                cursor = db.execute("INSERT INTO topics (name) VALUES (?)", (topic_name,))
-                topic_id = cursor.lastrowid
-            db.execute("INSERT OR IGNORE INTO post_topics (postid, topicid) VALUES (?,?)", (post_id,topic_id))
-        images = request.files.getlist("images")
-        for image in images:
-            if image and image.filename and allowed_file(image.filename):
-                ext = image.filename.rsplit(".", 1)[1].lower()
-                unique_name = f"{uuid.uuid4().hex}.{ext}"
-                os.makedirs(app.config("UPLOAD_FOLDER"), exist_ok=True)
-                save_path = os.path.join(app.config["UPLOAD_FOLDER"], unique_name)
-                image.save(save_path)
-                url = f"/static/uploads/{unique_name}"
-                db.execute(
-                    "INSERT INTO media (mediatype, url, name, postid) VALUES (?,?,?,?)",
-                    ("image", url, secure_filename(image.filename), post_id)
+
+        try:
+            print("DEBUG 2: insertando post", flush=True)
+
+            cursor = db.execute(
+                """
+                INSERT INTO posts
+                (title, content, level, language, date, userid)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    title,
+                    content,
+                    level,
+                    language,
+                    datetime.now().strftime("%A,%B,%d,%Y, %H:%M:%S"),
+                    userid
                 )
-        video_url = request.form.get("video_url","").strip()
-        if video_url:
-            # Convert any YouTube URL to embed format
-            import re
-            yt_match = re.search(r'(?:youtube\.com/(?:watch\?v=|shorts/|embed/)|youtu\.be/)([A-Za-z0-9_-]{11})', video_url)
-            if yt_match:
-                video_url = f"https://www.youtube.com/embed/{yt_match.group(1)}"
-            db.execute("INSERT INTO media (mediatype, url, name, postid) VALUES (?,?,?,?)", ("video", video_url, "video", post_id))
-        db.commit()
-        db.close()
+            )
+
+            post_id = cursor.lastrowid
+            print("DEBUG 3: post creado", post_id, flush=True)
+
+            for key in ["topic1", "topic2", "topic3"]:
+                topic_name = request.form.get(key, "").strip().lower()
+
+                if not topic_name:
+                    continue
+
+                topic = db.execute(
+                    "SELECT id FROM topics WHERE name = ?",
+                    (topic_name,)
+                ).fetchone()
+
+                if topic:
+                    topic_id = topic["id"]
+                else:
+                    cursor = db.execute(
+                        "INSERT INTO topics (name) VALUES (?)",
+                        (topic_name,)
+                    )
+                    topic_id = cursor.lastrowid
+
+                db.execute(
+                    """
+                    INSERT OR IGNORE INTO post_topics
+                    (postid, topicid) VALUES (?, ?)
+                    """,
+                    (post_id, topic_id)
+                )
+
+            print("DEBUG 4: temas procesados", flush=True)
+
+            # Por ahora, probamos sin guardar imágenes ni videos.
+            db.commit()
+            print("DEBUG 5: commit realizado", flush=True)
+
+        except Exception:
+            app.logger.exception("ERROR AL CREAR PUBLICACION")
+            db.rollback()
+            raise
+
+        finally:
+            db.close()
+
         return redirect(url_for("post", post_id=post_id))
-    return render_template("newpost.html")
+    # if request.method=="POST":
+    #     title=request.form.get("title","").strip()
+    #     content=request.form.get("content","")
+    #     level=request.form.get("level","")
+    #     if not title: return "Title is required",400
+    #     if not content: return "Content is required",400
+    #     if len(title) > 200: return "Title is too long",400
+    #     if level not in {"1","2","3","4","5"}: return "Invalid level",400
+    #     if len(content) > int(level) * 2000: return "Content is too long"
+    #     level = int(level)
+    #     language = request.form.get("language","gb")
+    #     userid=session.get("userid")
+    #     db = getdb()
+    #     cursor = db.execute("INSERT INTO posts (title,content,level,language,date,userid) VALUES (?,?,?,?,?,?)", (title,content,level,language,datetime.now().strftime("%A,%B,%d,%Y, %H:%M:%S"),userid))
+    #     post_id = cursor.lastrowid
+    #     for key in ["topic1","topic2","topic3"]:
+    #         topic_name=request.form.get(key,"").strip().lower()
+    #         if not topic_name: continue
+    #         topic=db.execute("SELECT id FROM topics WHERE name = ?", (topic_name,)).fetchone()
+    #         if topic:
+    #             topic_id = topic["id"]
+    #         else:
+    #             cursor = db.execute("INSERT INTO topics (name) VALUES (?)", (topic_name,))
+    #             topic_id = cursor.lastrowid
+    #         db.execute("INSERT OR IGNORE INTO post_topics (postid, topicid) VALUES (?,?)", (post_id,topic_id))
+    #     images = request.files.getlist("images")
+    #     for image in images:
+    #         if image and image.filename and allowed_file(image.filename):
+    #             ext = image.filename.rsplit(".", 1)[1].lower()
+    #             unique_name = f"{uuid.uuid4().hex}.{ext}"
+    #             os.makedirs(app.config("UPLOAD_FOLDER"), exist_ok=True)
+    #             save_path = os.path.join(app.config["UPLOAD_FOLDER"], unique_name)
+    #             image.save(save_path)
+    #             url = f"/static/uploads/{unique_name}"
+    #             db.execute(
+    #                 "INSERT INTO media (mediatype, url, name, postid) VALUES (?,?,?,?)",
+    #                 ("image", url, secure_filename(image.filename), post_id)
+    #             )
+    #     video_url = request.form.get("video_url","").strip()
+    #     if video_url:
+    #         # Convert any YouTube URL to embed format
+    #         import re
+    #         yt_match = re.search(r'(?:youtube\.com/(?:watch\?v=|shorts/|embed/)|youtu\.be/)([A-Za-z0-9_-]{11})', video_url)
+    #         if yt_match:
+    #             video_url = f"https://www.youtube.com/embed/{yt_match.group(1)}"
+    #         db.execute("INSERT INTO media (mediatype, url, name, postid) VALUES (?,?,?,?)", ("video", video_url, "video", post_id))
+    #     db.commit()
+    #     db.close()
+    #     return redirect(url_for("post", post_id=post_id))
+    # return render_template("newpost.html")
 @app.route("/user/<username>")
 def profile(username):
     db = getdb()
