@@ -29,8 +29,6 @@ load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY")
-
-# Registrar el cierre de las conexiones al finalizar cada solicitud.
 init_app(app)
 
 
@@ -169,6 +167,7 @@ def get_post(post_id):
         SELECT
             responses.id,
             responses.content,
+            responses.type,
             responses.date,
             responses.userid,
             responses.responseid,
@@ -215,7 +214,6 @@ def post(post_id):
     db = getdb()
 
     if request.method == "POST":
-        # Verificar que la publicación exista.
         exists = db.execute(
             "SELECT id FROM posts WHERE id = ?",
             (post_id,),
@@ -389,7 +387,6 @@ def newpost():
     content = request.form.get("content", "").strip()
     level = request.form.get("level", "")
 
-    # Validaciones
     if not title:
         return "Title is required", 400
 
@@ -431,7 +428,6 @@ def newpost():
 
         post_id = cursor.lastrowid
 
-        # Guardar temas
         for key in ["topic1", "topic2", "topic3"]:
             topic_name = request.form.get(key, "").strip().lower()
 
@@ -460,7 +456,6 @@ def newpost():
                 (post_id, topic_id),
             )
 
-        # Guardar imágenes
         os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
         images = request.files.getlist("images")
@@ -497,7 +492,6 @@ def newpost():
                 ),
             )
 
-        # Guardar video de YouTube
         video_url = request.form.get("video_url", "").strip()
 
         if video_url:
@@ -519,7 +513,6 @@ def newpost():
                 ("video", video_url, "video", post_id),
             )
 
-        # Confirmar todos los cambios
         db.commit()
 
     except Exception:
