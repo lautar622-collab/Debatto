@@ -55,28 +55,27 @@
         {% for response in responses %}
             <div class="response" style="margin-left: {{ depth * 30 }}px">
         <p class="response-data">
-    ID: {{ response.id }}
-    -<i> <a href="{{ url_for('profile', username=response.username) }}">{{ response.username }}</a></i> - {{ response.date }} - {{ response.type }}
-    <form action="{{ url_for('post', post_id=post.id) }}" method="post">
-        <input type="text" name="rcontent" placeholder="Write a response..." data-i18n-placeholder="response_placeholder">
-        <input type="hidden" name="post_id" value="{{ post.id }}">
-        <input type="hidden" name="parent_id" value="{{ response.id }}">
-        <select name="rtype">
-            <option value="" disabled selected data-i18n="marks_label">Marks</option>
-            <option value="agreed !" data-i18n="mark_agreed">Agreed (!)</option>
-            <option value="disagreed !" data-i18n="mark_disagreed">Disagreed (!)</option>
-            <option value="neutral -" data-i18n="mark_neutral">Neutral (-)</option>
-            <option value="clarification +" data-i18n="mark_clarification">Clarification (+)</option>
-            <option value="doubt ?" data-i18n="mark_doubt">Doubt (?)</option>
-            <option value="suggestion !?" data-i18n="mark_suggestion">Suggestion (!?)</option>
-            <option value="countershift !!" data-i18n="mark_countershift">Countershift (!!)</option>
-        </select>
-        <button type="submit" data-i18n="btn_post_response">Post Response</button>
-    </form>
-    <p class="response-content">{{ response.content }}</p>
-
-</p>
-</div>
+            ID: {{ response.id }}
+            -<i> <a href="{{ url_for('profile', username=response.username) }}">{{ response.username }}</a></i> - {{ response.date }} - {{ response.type }}
+        </p>
+        <form action="{{ url_for('post', post_id=post.id) }}" method="post">
+            <input type="text" name="rcontent" placeholder="Write a response..." data-i18n-placeholder="response_placeholder">
+            <input type="hidden" name="post_id" value="{{ post.id }}">
+            <input type="hidden" name="parent_id" value="{{ response.id }}">
+            <select name="rtype">
+                <option value="" disabled selected data-i18n="marks_label">Marks</option>
+                <option value="agreed !" data-i18n="mark_agreed">Agreed (!)</option>
+                <option value="disagreed !" data-i18n="mark_disagreed">Disagreed (!)</option>
+                <option value="neutral -" data-i18n="mark_neutral">Neutral (-)</option>
+                <option value="clarification +" data-i18n="mark_clarification">Clarification (+)</option>
+                <option value="doubt ?" data-i18n="mark_doubt">Doubt (?)</option>
+                <option value="suggestion !?" data-i18n="mark_suggestion">Suggestion (!?)</option>
+                <option value="countershift !!" data-i18n="mark_countershift">Countershift (!!)</option>
+            </select>
+            <button type="submit" data-i18n="btn_post_response">Post Response</button>
+        </form>
+        <p class="response-content">{{ response.content }}</p>
+    </div>
             {{ show_responses(response.responses, depth + 1) }}
         {% endfor %}
     {% endmacro %}
