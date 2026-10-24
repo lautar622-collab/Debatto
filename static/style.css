@@ -213,7 +213,7 @@ button {
     margin: 10px 0;
     border-radius: 8px;
     overflow: hidden;
-    max-width: 560px;
+    max-width: 1280px;
 }
 .post-video-embed iframe {
     display: block;
@@ -248,4 +248,4 @@ button {
     border-color: rgb(128, 174, 255);
     font-weight: bold;
     color: rgb(128, 174, 255);
-}
+}
