@@ -124,6 +124,7 @@ def build_response_tree(responses, parent_id=None):
 
     return result
 
+# POST
 
 def get_post(post_id):
     db = getdb()
@@ -171,6 +172,7 @@ def get_post(post_id):
             responses.date,
             responses.userid,
             responses.responseid,
+            responses.type,
             COALESCE(users.username, 'Anonymous') AS username
         FROM responses
         LEFT JOIN users ON responses.userid = users.id
