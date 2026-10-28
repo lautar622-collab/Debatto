@@ -228,15 +228,10 @@ button {
 }
 
 .lang-btn {
-    padding: 3px 8px;
-    font-size: 0.75rem;
-    background: transparent;
-    border: 1px solid #555;
-    border-radius: 4px;
-    cursor: pointer;
-    opacity: 0.6;
-    color: rgb(169, 169, 169);
-    transition: opacity 0.2s, border-color 0.2s;
+    display: inline-block;
+    width: auto;
+    padding: 5px 10px;
+    margin: 0;
 }
 
 .lang-btn:hover {
