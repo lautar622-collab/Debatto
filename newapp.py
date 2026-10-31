@@ -491,6 +491,8 @@ def newpost():
                 ),
             )
 
+        db.commit()
+
     except Exception:
         db.rollback()
 
