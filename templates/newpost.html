@@ -8,101 +8,116 @@
 </head>
 <body>
     {% include "sidebar.html" %}
+
     <div class="content">
         <h1 data-i18n="newpost_title">New Post</h1>
+
         <form action="/newpost" class="formpost" method="post" enctype="multipart/form-data">
-            <input type="text" placeholder="Title (up to 200 characters)" data-i18n-placeholder="title_placeholder" name="title" class="ptitle"><br><br>
-                <select aria-placeholder="Seriousness Level" name="level">
-                <option value="" disabled selected data-i18n="seriousness_select">Seriousness</option>
-                <option value="1">1- Joke</option>
-                <option value="2">2- Casual</option>
-                <option value="3">3- Logic</option>
-                <option value="4">4- Academic</option>
-                <option value="5">5- Brilliant</option>
-            </select>
-            <select name="language" aria-placeholder="Language">
-                <option value="gb">English</option>
-                <option value="es">Español </option>
-                <option value="pt">Português</option>
-                <option value="fr">Français</option>
-                <option value="de">Deustch</option>
-                <option value="ru">русский</option>
-                <option value="ch">中国人</option>
-                <option value="jp">日本語</option>
-            </select>
-            <br>
-            <br>
-            <textarea placeholder="Content" data-i18n-placeholder="content_placeholder"
-            class="pcontent" maxlength="5000" name="content"></textarea> <p data-i18n="add_topics">Add topics</p>
-            <input type="text" name="topic1" required>
-            <input type="text" name="topic2">
-            <input type="text" name="topic3">
-            <br><br>
-            <!-- Image Upload -->
-            <p><span data-i18n="attach_images">Attach images</span> <small data-i18n="attach_images_hint">(optional · PNG, JPG, GIF, WEBP · max 5 MB each)</small></p>
-            <label class="upload-btn" for="image-input">
-                <span data-i18n="choose_images_btn">📎 Choose images</span>
-                <input id="image-input" type="file" name="images" accept="image/png,image/jpeg,image/gif,image/webp" multiple style="display:none">
-            </label>
-            <div id="image-preview" class="image-preview-grid"></div>
-            <p><span data-i18n="attach_video">Attach a video</span> <small data-i18n="attach_video_hint">(optional · paste a YouTube or direct video URL)</small></p>
-            <input type="url" id="video-url-input" name="video_url" placeholder="https://www.youtube.com/watch?v=..." data-i18n-placeholder="video_placeholder" style="width: 100%;">
-            <div id="video-preview" style="margin-top: 10px;">
+
+            <div class="post-composer">
+
+                <div class="composer-main">
+                    <input
+                        type="text"
+                        placeholder="Title (up to 200 characters)"
+                        data-i18n-placeholder="title_placeholder"
+                        name="title"
+                        class="ptitle"
+                        maxlength="200"
+                        required
+                    >
+
+                    <div class="composer-selectors">
+                        <select name="level" required>
+                            <option value="" disabled selected data-i18n="seriousness_select">Seriousness</option>
+                            <option value="1">1- Joke</option>
+                            <option value="2">2- Casual</option>
+                            <option value="3">3- Logic</option>
+                            <option value="4">4- Academic</option>
+                            <option value="5">5- Brilliant</option>
+                        </select>
+
+                        <select name="language" aria-label="Language">
+                            <option value="gb">English</option>
+                            <option value="es">Español</option>
+                            <option value="pt">Português</option>
+                            <option value="fr">Français</option>
+                            <option value="de">Deutsch</option>
+                            <option value="ru">русский</option>
+                            <option value="ch">中文</option>
+                            <option value="jp">日本語</option>
+                        </select>
+                    </div>
+
+                    <textarea
+                        placeholder="Content"
+                        data-i18n-placeholder="content_placeholder"
+                        class="pcontent"
+                        maxlength="5000"
+                        name="content"
+                    ></textarea>
+
+                    <p data-i18n="add_topics">Add topics</p>
+                    <input type="text" name="topic1" required>
+                    <input type="text" name="topic2">
+                    <input type="text" name="topic3">
+
+                    <p>
+                        <span data-i18n="attach_images">Attach images</span>
+                        <small data-i18n="attach_images_hint">(optional · PNG, JPG, GIF, WEBP · max 5 MB each)</small>
+                    </p>
+
+                    <label class="upload-btn" for="image-input">
+                        <span data-i18n="choose_images_btn">📎 Choose images</span>
+                        <input
+                            id="image-input"
+                            type="file"
+                            name="images"
+                            accept="image/png,image/jpeg,image/gif,image/webp"
+                            multiple
+                            style="display:none"
+                        >
+                    </label>
+
+                    <div id="image-preview" class="image-preview-grid"></div>
+                        <div class="composer-submit">
+                            <button type="submit" data-i18n="btn_post">Post</button>
+                        </div>
+                    </div>
+
+
+
             </div>
-            <button type="submit" data-i18n="btn_post">Post</button>
         </form>
+
         <script>
             document.getElementById('image-input').addEventListener('change', function () {
                 const preview = document.getElementById('image-preview');
                 preview.innerHTML = '';
+
                 Array.from(this.files).forEach(function(file) {
                     const reader = new FileReader();
+
                     reader.onload = function(e) {
                         const wrapper = document.createElement('div');
                         wrapper.className = 'preview-thumb';
+
                         const img = document.createElement('img');
                         img.src = e.target.result;
                         img.alt = file.name;
+
                         const label = document.createElement('span');
                         label.textContent = file.name;
+
                         wrapper.appendChild(img);
                         wrapper.appendChild(label);
                         preview.appendChild(wrapper);
                     };
+
                     reader.readAsDataURL(file);
                 });
             });
-            document.getElementById("video-url-input").addEventListener("input", function () {
-                const url = this.value.trim();
-                const preview = document.getElementById("video-preview");
-                preview.innerHTML = "";
-                if (!url) return;
-                const embedUrl = convertToEmbed(url);
-                if (embedUrl) {
-                    const iframe = document.createElement("iframe");
-                    iframe.src = embedUrl;
-                    iframe.width = "100%";
-                    iframe.height = "250";
-                    iframe.frameBorder = "0";
-                    iframe.allowFullscreen = true;
-                    preview.appendChild(iframe);
-                } else {
-                    const video = document.createElement("video");
-                    video.src = url;
-                    video.controls = true;
-                    video.style.width = "100%";
-                    preview.appendChild(video);
-                }
-            });
-            function convertToEmbed(url) {
-                const ytMatch = url.match(/youtube\.com\/watch\?v=([^&]+)/);
-                if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`;
-                const ytShort = url.match(/youtu\.be\/([^?]+)/);
-                if (ytShort) return `https://www.youtube.com/embed/${ytShort[1]}`;
-                return null;
-            }
         </script>
     </div>
-
 </body>
 </html>

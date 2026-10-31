@@ -245,8 +245,6 @@ button {
     color: rgb(128, 174, 255);
 }
 
-/* --- SISTEMA DE VALIDACIONES Y ALERTAS --- */
-/* 1. Estado de error en inputs */
 .input-error {
     border: 1px solid #ff4d4d !important;
     background-color: rgba(255, 77, 77, 0.08) !important;
@@ -257,7 +255,6 @@ button {
     20%, 60% { transform: translateX(-5px); }
     40%, 80% { transform: translateX(5px); }
 }
-/* 2. Banner de Alerta Inline */
 .debatto-alert {
     display: flex;
     align-items: center;
@@ -297,7 +294,6 @@ button {
         transform: translateY(0);
     }
 }
-/* 3. Tooltip contextual debajo de un campo */
 .field-tooltip {
     display: block;
     color: #ff6b6b;
@@ -306,7 +302,6 @@ button {
     margin-bottom: 6px;
     animation: fadeInSlide 0.2s ease-out;
 }
-/* 4. Contador dinámico de caracteres */
 .char-counter {
     font-size: 0.75rem;
     color: #888;
@@ -317,4 +312,82 @@ button {
 .char-counter.limit-reached {
     color: #ff4d4d;
     font-weight: bold;
+}
+.post-composer {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    width: 100%;
+}
+
+.composer-main {
+    flex: 1;
+    min-width: 0;
+    padding: 15px;
+    background-color: #1f1f1f;
+}
+
+.ptitle {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 10px;
+    font-size: 1.1em;
+    margin-bottom: 10px;
+}
+
+.composer-selectors {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.composer-selectors select {
+    padding: 8px;
+}
+
+.pcontent {
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 250px;
+    padding: 10px;
+    resize: vertical;
+    font-family: Arial;
+    font-size: 1em;
+}
+
+.composer-submit {
+    display: flex;
+}
+
+.composer-submit button {
+    padding: 12px 25px;
+    font-size: 1em;
+    background-color: #252525;
+    color: rgb(128, 174, 255);
+    border: 1px solid #3a3a3a;
+}
+
+.composer-submit button:hover {
+    background-color: #333;
+}
+
+@media (max-width: 600px) {
+    .post-composer {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .composer-submit {
+        justify-content: flex-end;
+    }
+
+    .composer-selectors {
+        flex-wrap: wrap;
+    }
+
+    .composer-selectors select {
+        flex: 1;
+        min-width: 0;
+    }
 }

@@ -492,29 +492,6 @@ def newpost():
                 ),
             )
 
-        video_url = request.form.get("video_url", "").strip()
-
-        if video_url:
-            yt_match = re.search(
-                r"(?:youtube\.com/(?:watch\?v=|shorts/|embed/)|youtu\.be/)([A-Za-z0-9_-]{11})",
-                video_url,
-            )
-
-            if yt_match:
-                video_url = (
-                    f"https://www.youtube.com/embed/{yt_match.group(1)}"
-                )
-
-            db.execute(
-                """
-                INSERT INTO media (mediatype, url, name, postid)
-                VALUES (?, ?, ?, ?)
-                """,
-                ("video", video_url, "video", post_id),
-            )
-
-        db.commit()
-
     except Exception:
         db.rollback()
 
