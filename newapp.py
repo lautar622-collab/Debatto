@@ -5,7 +5,9 @@ import uuid
 import os
 import random
 from datetime import datetime
+
 from dotenv import load_dotenv
+load_dotenv()
 
 from flask import (
     Flask,
@@ -14,6 +16,7 @@ from flask import (
     redirect,
     url_for,
     session,
+    send_from_directory,
 )
 
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -21,22 +24,29 @@ from werkzeug.utils import secure_filename
 
 from db import getdb, init_app
 
-load_dotenv()
-
 
 # FLASK
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY")
+
+secret_key = os.environ.get("SECRET_KEY")
+if not secret_key:
+    raise RuntimeError("SECRET_KEY environment variable is required.")
+
+app.secret_key = secret_key
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = bool(os.environ.get("RAILWAY_ENVIRONMENT_NAME"))
+
 init_app(app)
 
 
 # UPLOAD CONFIG
 
-UPLOAD_FOLDER = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
-    "static",
-    "uploads",
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_UPLOAD_FOLDER = os.path.join(BASE_DIR, "static", "uploads")
+UPLOAD_FOLDER = os.path.abspath(
+    os.environ.get("UPLOAD_FOLDER", DEFAULT_UPLOAD_FOLDER)
 )
 
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
@@ -121,6 +131,7 @@ def build_response_tree(responses, parent_id=None):
 
     return result
 
+
 # POST
 
 def get_post(post_id):
@@ -170,7 +181,6 @@ def get_post(post_id):
             responses.date,
             responses.userid,
             responses.responseid,
-            responses.type,
             COALESCE(users.username, 'Anonymous') AS username
         FROM responses
         LEFT JOIN users ON responses.userid = users.id
@@ -204,6 +214,15 @@ def index():
     random.shuffle(posts)
 
     return render_template("home.html", posts=posts)
+
+
+# PERSISTENT UPLOADS
+# Keep the old URL working for media records created before this deployment.
+
+@app.route("/uploads/<path:filename>")
+@app.route("/static/uploads/<path:filename>")
+def uploaded_file(filename):
+    return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
 
 
 # POST DETAIL AND RESPONSES
@@ -476,7 +495,7 @@ def newpost():
 
             image.save(save_path)
 
-            url = f"/static/uploads/{unique_name}"
+            image_url = url_for("uploaded_file", filename=unique_name)
 
             db.execute(
                 """
@@ -485,7 +504,7 @@ def newpost():
                 """,
                 (
                     "image",
-                    url,
+                    image_url,
                     secure_filename(image.filename),
                     post_id,
                 ),
@@ -499,7 +518,7 @@ def newpost():
         app.logger.exception("Error al crear una publicación")
 
         return (
-            "Error al crear la publicación. Revisá los logs de Render.",
+            "Error al crear la publicación. Revisá los logs del servicio.",
             500,
         )
 
