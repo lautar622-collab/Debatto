@@ -15,6 +15,13 @@
             <span data-i18n="seriousness_detail">Seriousness:</span> <b>{{ post.level }}</b> ID: {{ post.id }} - {{ post.date }}
         </p>
         <p class="response-content">{{ post.content }}</p>
+        {% if session.get("userid") %}
+        <form action="{{ url_for('report_post', post_id=post.id) }}" method="post" class="report-form" onsubmit="return confirm('Report this post as spam?');">
+            <button type="submit" class="report-button">⚑ Report Spam</button>
+        </form>
+        {% else %}
+        <small><a href="{{ url_for('index', report_login=1) }}">Log in to report spam</a></small>
+        {% endif %}
         {% if post.media %}
         <div class="post-media-grid">
             {% for item in post.media %}
