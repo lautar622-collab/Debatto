@@ -391,3 +391,20 @@ button {
         min-width: 0;
     }
 }
+
+
+/* --- Spam reporting --- */
+.report-form {
+    display: inline-block;
+    margin-top: 8px;
+}
+.report-button {
+    padding: 6px 10px;
+    color: #ff8585;
+    background: #252525;
+    border: 1px solid #633535;
+    cursor: pointer;
+}
+.report-button:hover {
+    background: #382323;
+}
