@@ -525,6 +525,39 @@ def newpost():
     return redirect(url_for("post", post_id=post_id))
 
 
+# REPORT POSTS
+
+@app.route("/report/<int:post_id>", methods=["POST"])
+def report_post(post_id):
+    userid = session.get("userid")
+    if not userid:
+        return redirect(url_for("index", report_login="1"))
+
+    db = getdb()
+    post_exists = db.execute(
+        "SELECT id FROM posts WHERE id = ?", (post_id,)
+    ).fetchone()
+
+    if not post_exists:
+        return "Post not found", 404
+
+    cursor = db.execute(
+        """
+        INSERT OR IGNORE INTO reports (postid, userid, date)
+        VALUES (?, ?, ?)
+        """,
+        (
+            post_id,
+            userid,
+            datetime.now().strftime("%A, %B %d, %Y, %H:%M:%S"),
+        ),
+    )
+    db.commit()
+
+    status = "reported" if cursor.rowcount else "already_reported"
+    return redirect(url_for("index", report_status=status))
+
+
 # USER PROFILE
 
 @app.route("/user/<username>")
