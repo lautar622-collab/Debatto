@@ -66,3 +66,14 @@ CREATE TABLE IF NOT EXISTS post_topics (
     FOREIGN KEY (postid) REFERENCES posts (id),
     FOREIGN KEY (topicid) REFERENCES topics (id)
 );
+
+CREATE TABLE IF NOT EXISTS reports (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    postid INTEGER NOT NULL,
+    userid INTEGER NOT NULL,
+    date TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'Pending',
+    UNIQUE (postid, userid),
+    FOREIGN KEY (postid) REFERENCES posts (id),
+    FOREIGN KEY (userid) REFERENCES users (id)
+);
