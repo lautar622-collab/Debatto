@@ -15,13 +15,15 @@
             <span data-i18n="seriousness_detail">Seriousness:</span> <b>{{ post.level }}</b> ID: {{ post.id }} - {{ post.date }}
         </p>
         <p class="response-content">{{ post.content }}</p>
-        {% if session.get("userid") %}
-        <form action="{{ url_for('report_post', post_id=post.id) }}" method="post" class="report-form" onsubmit="return confirm('Report this post as spam?');">
-            <button type="submit" class="report-button">⚑ Report Spam</button>
-        </form>
-        {% else %}
-        <small><a href="{{ url_for('index', report_login=1) }}">Log in to report spam</a></small>
-        {% endif %}
+        <div class="report-row">
+            {% if session.get("userid") %}
+            <form action="{{ url_for('report_content', content_type='post', target_id=post.id) }}" method="post" class="report-form">
+                <a href="#" class="report-link" onclick="this.closest('form').submit(); return false;">Report</a>
+            </form>
+            {% else %}
+            <a class="report-link" href="{{ url_for('index') }}">Report</a>
+            {% endif %}
+        </div>
         {% if post.media %}
         <div class="post-media-grid">
             {% for item in post.media %}
@@ -74,6 +76,15 @@
             <button type="submit" data-i18n="btn_post_response">Post Response</button>
         </form>
         <p class="response-content">{{ response.content }}</p>
+        <div class="report-row">
+            {% if session.get("userid") %}
+            <form action="{{ url_for('report_content', content_type='response', target_id=response.id) }}" method="post" class="report-form">
+                <a href="#" class="report-link" onclick="this.closest('form').submit(); return false;">Report</a>
+            </form>
+            {% else %}
+            <a class="report-link" href="{{ url_for('index') }}">Report</a>
+            {% endif %}
+        </div>
     </div>
             {{ show_responses(response.responses, depth + 1) }}
         {% endfor %}
