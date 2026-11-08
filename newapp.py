@@ -684,6 +684,11 @@ def moderation_delete(content_type, target_id):
         db.execute("DELETE FROM media WHERE postid IN (SELECT id FROM posts WHERE userid = ?)", (account_id,))
         db.execute("DELETE FROM post_topics WHERE postid IN (SELECT id FROM posts WHERE userid = ?)", (account_id,))
         db.execute("DELETE FROM postversion WHERE userid = ? OR postid IN (SELECT id FROM posts WHERE userid = ?)", (account_id, account_id))
+        # Remove legacy post-only reports before deleting their referenced posts/users.
+        db.execute(
+            "DELETE FROM reports WHERE userid = ? OR postid IN (SELECT id FROM posts WHERE userid = ?)",
+            (account_id, account_id),
+        )
         db.execute("DELETE FROM posts WHERE userid = ?", (account_id,))
         db.execute("DELETE FROM content_reports WHERE userid = ?", (account_id,))
         db.execute("DELETE FROM users WHERE id = ?", (account_id,))
@@ -695,6 +700,8 @@ def moderation_delete(content_type, target_id):
         db.execute("DELETE FROM media WHERE postid = ?", (target_id,))
         db.execute("DELETE FROM post_topics WHERE postid = ?", (target_id,))
         db.execute("DELETE FROM postversion WHERE postid = ?", (target_id,))
+        # The old reports table has a foreign key to posts too.
+        db.execute("DELETE FROM reports WHERE postid = ?", (target_id,))
         db.execute("DELETE FROM responses WHERE postid = ?", (target_id,))
         db.execute("DELETE FROM posts WHERE id = ?", (target_id,))
     elif action == "content" and content_type == "response":
