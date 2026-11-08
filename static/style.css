@@ -408,3 +408,24 @@ button {
 .report-button:hover {
     background: #382323;
 }
+
+/* --- Report links --- */
+.report-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 8px;
+}
+.report-form {
+    display: inline;
+    margin: 0;
+}
+.report-link {
+    color: #999;
+    font-size: 0.85em;
+    text-decoration: none;
+    cursor: pointer;
+}
+.report-link:hover {
+    color: #ff8585;
+    text-decoration: underline;
+}
