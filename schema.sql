@@ -77,3 +77,15 @@ CREATE TABLE IF NOT EXISTS reports (
     FOREIGN KEY (postid) REFERENCES posts (id),
     FOREIGN KEY (userid) REFERENCES users (id)
 );
+
+CREATE TABLE IF NOT EXISTS content_reports (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    content_type TEXT NOT NULL CHECK (content_type IN ('post', 'response')),
+    target_id INTEGER NOT NULL,
+    userid INTEGER NOT NULL,
+    date TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'Pending',
+    FOREIGN KEY (userid) REFERENCES users (id)
+);
+CREATE INDEX IF NOT EXISTS idx_content_reports_target
+ON content_reports (content_type, target_id);
