@@ -89,3 +89,14 @@ CREATE TABLE IF NOT EXISTS content_reports (
 );
 CREATE INDEX IF NOT EXISTS idx_content_reports_target
 ON content_reports (content_type, target_id);
+
+-- Carry forward reports created by the first post-only reporting version.
+INSERT INTO content_reports (content_type, target_id, userid, date, status)
+SELECT 'post', old.postid, old.userid, old.date, old.status
+FROM reports old
+WHERE NOT EXISTS (
+    SELECT 1 FROM content_reports current
+    WHERE current.content_type = 'post'
+      AND current.target_id = old.postid
+      AND current.userid = old.userid
+);
