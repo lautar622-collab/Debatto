@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Review Queue - Debatto</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+{% include "sidebar.html" %}
+<div class="content">
+    <h1>Reported Content</h1>
+    {% if not reports %}
+        <p>No reported content.</p>
+    {% endif %}
+    {% for item in reports %}
+    <div class="postdiv reported-item">
+        <p class="post-data">
+            {{ item.content_type|title }} · {{ item.report_count }} report(s) · Last reported: {{ item.last_reported }}
+        </p>
+        {% if item.content_type == 'post' %}
+            <h2><a href="{{ url_for('post', post_id=item.post_id) }}">{{ item.post_title }}</a></h2>
+        {% else %}
+            <p>Response on: <a href="{{ url_for('post', post_id=item.post_id) }}">{{ item.post_title }}</a></p>
+        {% endif %}
+        <p><b>{{ item.author }}</b></p>
+        <p class="response-content">{{ item.content }}</p>
+        <div class="moderation-actions">
+            <form method="post" action="{{ url_for('moderation_delete', content_type=item.content_type, target_id=item.target_id) }}" onsubmit="return confirm('Permanently delete this content?');">
+                <input type="hidden" name="action" value="content">
+                <button type="submit">Delete {{ 'Post' if item.content_type == 'post' else 'Response' }}</button>
+            </form>
+            <form method="post" action="{{ url_for('moderation_delete', content_type=item.content_type, target_id=item.target_id) }}" onsubmit="return confirm('Permanently delete this author account and its content?');">
+                <input type="hidden" name="action" value="account">
+                <button type="submit">Delete Account</button>
+            </form>
+        </div>
+    </div>
+    <hr>
+    {% endfor %}
+</div>
+</body>
+</html>
