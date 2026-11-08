@@ -525,37 +525,212 @@ def newpost():
     return redirect(url_for("post", post_id=post_id))
 
 
-# REPORT POSTS
+# REPORTING AND MODERATION
 
-@app.route("/report/<int:post_id>", methods=["POST"])
-def report_post(post_id):
+def current_user_is_admin():
     userid = session.get("userid")
     if not userid:
-        return redirect(url_for("index", report_login="1"))
+        return False
+    user = getdb().execute(
+        "SELECT role FROM users WHERE id = ?", (userid,)
+    ).fetchone()
+    return bool(user and user["role"] == "Admin")
+
+
+@app.route("/report/<content_type>/<int:target_id>", methods=["POST"])
+def report_content(content_type, target_id):
+    userid = session.get("userid")
+    if not userid:
+        return redirect(url_for("index"))
+
+    if content_type not in {"post", "response"}:
+        return "Invalid report target", 400
 
     db = getdb()
-    post_exists = db.execute(
-        "SELECT id FROM posts WHERE id = ?", (post_id,)
+    if content_type == "post":
+        target = db.execute(
+            "SELECT id FROM posts WHERE id = ?", (target_id,)
+        ).fetchone()
+        post_id = target_id
+    else:
+        target = db.execute(
+            "SELECT id, postid FROM responses WHERE id = ?", (target_id,)
+        ).fetchone()
+        post_id = target["postid"] if target else None
+
+    if not target:
+        return "Content not found", 404
+
+    existing = db.execute(
+        """
+        SELECT id FROM content_reports
+        WHERE content_type = ? AND target_id = ? AND userid = ?
+        """,
+        (content_type, target_id, userid),
     ).fetchone()
 
-    if not post_exists:
-        return "Post not found", 404
+    if not existing:
+        db.execute(
+            """
+            INSERT INTO content_reports
+                (content_type, target_id, userid, date)
+            VALUES (?, ?, ?, ?)
+            """,
+            (
+                content_type,
+                target_id,
+                userid,
+                datetime.now().strftime("%A, %B %d, %Y, %H:%M:%S"),
+            ),
+        )
+        db.commit()
 
-    cursor = db.execute(
+    if content_type == "post":
+        return redirect(url_for("index"))
+    return redirect(url_for("post", post_id=post_id))
+
+
+@app.route("/mossy-lantern-4821")
+def hidden_review_queue():
+    if not current_user_is_admin():
+        return "Not found", 404
+
+    db = getdb()
+    reports = db.execute(
         """
-        INSERT OR IGNORE INTO reports (postid, userid, date)
-        VALUES (?, ?, ?)
-        """,
-        (
-            post_id,
-            userid,
-            datetime.now().strftime("%A, %B %d, %Y, %H:%M:%S"),
-        ),
-    )
-    db.commit()
+        SELECT
+            cr.content_type,
+            cr.target_id,
+            MAX(cr.date) AS last_reported,
+            COUNT(cr.id) AS report_count,
+            CASE WHEN cr.content_type = 'post' THEN p.content ELSE r.content END AS content,
+            CASE WHEN cr.content_type = 'post' THEN p.title ELSE parent.title END AS post_title,
+            CASE WHEN cr.content_type = 'post' THEN p.id ELSE parent.id END AS post_id,
+            CASE WHEN cr.content_type = 'post' THEN p.userid ELSE r.userid END AS author_id,
+            COALESCE(author.username, 'Anonymous') AS author
+        FROM content_reports cr
+        LEFT JOIN posts p
+            ON cr.content_type = 'post' AND p.id = cr.target_id
+        LEFT JOIN responses r
+            ON cr.content_type = 'response' AND r.id = cr.target_id
+        LEFT JOIN posts parent
+            ON parent.id = r.postid
+        LEFT JOIN users author
+            ON author.id = CASE
+                WHEN cr.content_type = 'post' THEN p.userid
+                ELSE r.userid
+            END
+        GROUP BY cr.content_type, cr.target_id
+        ORDER BY last_reported DESC
+        """
+    ).fetchall()
 
-    status = "reported" if cursor.rowcount else "already_reported"
-    return redirect(url_for("index", report_status=status))
+    return render_template("reports.html", reports=reports)
+
+
+@app.route("/mossy-lantern-4821/delete/<content_type>/<int:target_id>", methods=["POST"])
+def moderation_delete(content_type, target_id):
+    if not current_user_is_admin():
+        return "Not found", 404
+
+    action = request.form.get("action")
+    db = getdb()
+
+    if action == "account":
+        if content_type == "post":
+            owner = db.execute(
+                "SELECT userid FROM posts WHERE id = ?", (target_id,)
+            ).fetchone()
+        elif content_type == "response":
+            owner = db.execute(
+                "SELECT userid FROM responses WHERE id = ?", (target_id,)
+            ).fetchone()
+        else:
+            return "Invalid target", 400
+
+        if not owner or owner["userid"] is None:
+            return "Account not found", 404
+
+        account_id = owner["userid"]
+        db.execute(
+            """
+            WITH RECURSIVE tree(id) AS (
+                SELECT id FROM responses
+                WHERE userid = ? OR postid IN (SELECT id FROM posts WHERE userid = ?)
+                UNION
+                SELECT child.id FROM responses child
+                JOIN tree parent ON child.responseid = parent.id
+            )
+            DELETE FROM content_reports
+            WHERE (content_type = 'response' AND target_id IN (SELECT id FROM tree))
+               OR (content_type = 'post' AND target_id IN (SELECT id FROM posts WHERE userid = ?))
+               OR userid = ?
+            """,
+            (account_id, account_id, account_id, account_id),
+        )
+        db.execute(
+            """
+            WITH RECURSIVE tree(id) AS (
+                SELECT id FROM responses
+                WHERE userid = ? OR postid IN (SELECT id FROM posts WHERE userid = ?)
+                UNION
+                SELECT child.id FROM responses child
+                JOIN tree parent ON child.responseid = parent.id
+            )
+            DELETE FROM responses WHERE id IN (SELECT id FROM tree)
+            """,
+            (account_id, account_id),
+        )
+        db.execute("DELETE FROM media WHERE postid IN (SELECT id FROM posts WHERE userid = ?)", (account_id,))
+        db.execute("DELETE FROM post_topics WHERE postid IN (SELECT id FROM posts WHERE userid = ?)", (account_id,))
+        db.execute("DELETE FROM postversion WHERE userid = ? OR postid IN (SELECT id FROM posts WHERE userid = ?)", (account_id, account_id))
+        db.execute("DELETE FROM posts WHERE userid = ?", (account_id,))
+        db.execute("DELETE FROM content_reports WHERE userid = ?", (account_id,))
+        db.execute("DELETE FROM users WHERE id = ?", (account_id,))
+    elif action == "content" and content_type == "post":
+        exists = db.execute("SELECT id FROM posts WHERE id = ?", (target_id,)).fetchone()
+        if not exists:
+            return "Post not found", 404
+        db.execute("DELETE FROM content_reports WHERE (content_type = 'post' AND target_id = ?) OR (content_type = 'response' AND target_id IN (SELECT id FROM responses WHERE postid = ?))", (target_id, target_id))
+        db.execute("DELETE FROM media WHERE postid = ?", (target_id,))
+        db.execute("DELETE FROM post_topics WHERE postid = ?", (target_id,))
+        db.execute("DELETE FROM postversion WHERE postid = ?", (target_id,))
+        db.execute("DELETE FROM responses WHERE postid = ?", (target_id,))
+        db.execute("DELETE FROM posts WHERE id = ?", (target_id,))
+    elif action == "content" and content_type == "response":
+        exists = db.execute("SELECT id FROM responses WHERE id = ?", (target_id,)).fetchone()
+        if not exists:
+            return "Response not found", 404
+        db.execute(
+            """
+            WITH RECURSIVE tree(id) AS (
+                SELECT id FROM responses WHERE id = ?
+                UNION
+                SELECT child.id FROM responses child
+                JOIN tree parent ON child.responseid = parent.id
+            )
+            DELETE FROM content_reports WHERE content_type = 'response'
+            AND target_id IN (SELECT id FROM tree)
+            """,
+            (target_id,),
+        )
+        db.execute(
+            """
+            WITH RECURSIVE tree(id) AS (
+                SELECT id FROM responses WHERE id = ?
+                UNION
+                SELECT child.id FROM responses child
+                JOIN tree parent ON child.responseid = parent.id
+            )
+            DELETE FROM responses WHERE id IN (SELECT id FROM tree)
+            """,
+            (target_id,),
+        )
+    else:
+        return "Invalid moderation action", 400
+
+    db.commit()
+    return redirect(url_for("hidden_review_queue"))
 
 
 # USER PROFILE
