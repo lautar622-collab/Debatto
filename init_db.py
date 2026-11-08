@@ -23,6 +23,28 @@ def init_db():
         with open(SCHEMA, "r", encoding="utf-8") as file:
             connection.executescript(file.read())
 
+        # One-time promotion requested by the site owner.
+        connection.execute("""
+            CREATE TABLE IF NOT EXISTS app_migrations (
+                name TEXT PRIMARY KEY,
+                applied_at TEXT NOT NULL
+            )
+        """)
+        already_applied = connection.execute(
+            "SELECT 1 FROM app_migrations WHERE name = ?",
+            ("promote_debatter_admin",),
+        ).fetchone()
+        if not already_applied:
+            promoted = connection.execute(
+                "UPDATE users SET role = 'Admin' WHERE lower(username) = lower(?)",
+                ("Debatter",),
+            )
+            if promoted.rowcount:
+                connection.execute(
+                    "INSERT INTO app_migrations (name, applied_at) VALUES (?, datetime('now'))",
+                    ("promote_debatter_admin",),
+                )
+
         connection.commit()
 
         tables = connection.execute("""
